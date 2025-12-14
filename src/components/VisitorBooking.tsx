@@ -5,9 +5,10 @@ import { ArrowRight, Check, Flag, AlertCircle, Calendar, ShieldCheck, Trophy, Ch
 import { Experience, SlotOption, Booking, Slot } from '../types';
 import { storageService } from '../services/storageService';
 import { bookingService } from '../services/bookingService';
-import { generateBookingPDF, generateQRImage } from './TicketPDF';
+import { generateQRImage } from './TicketPDF';
 import { format } from 'date-fns';
 import { BrandLogo } from './BrandLogo';
+import Image from 'next/image';
 
 export const VisitorBooking: React.FC = () => {
   // Scene Control: 1=Welcome, 2=Pax, 3=ExpSelection, 4=SlotSel, 5=Names, 6=Validate, 7=Ticket
@@ -78,7 +79,6 @@ export const VisitorBooking: React.FC = () => {
     if (!selectedSlot || !selectedExpId) return;
     const booking = bookingService.createBooking(selectedSlot, pax, visitorName, visitorEmail, attendees);
     setConfirmedBookings([booking]);
-    // Removed auto download: await generateBookingPDF(booking, expName);
     setScene(7);
   };
 
@@ -92,25 +92,24 @@ export const VisitorBooking: React.FC = () => {
         <div className="absolute top-0 left-0 w-32 h-32 border-l-4 border-t-4 border-yellow-400/20"></div>
         <div className="absolute bottom-0 right-0 w-32 h-32 border-r-4 border-b-4 border-yellow-400/20"></div>
 
-        <div className="mb-8 relative w-full max-w-2xl flex justify-center">
-            <div className="absolute inset-0 bg-yellow-400 blur-3xl opacity-5 rounded-full"></div>
-            {/* Using the SVG Component instead of external image to guarantee display */}
-            <BrandLogo className="w-full h-auto relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" />
+        <div className="mb-8 relative w-full max-w-sm flex justify-center">
+             
+            <Image src="/logo-bc.png" alt="Black Cats & Chequered Flags Logo" width={200} height={80} className="w-3/12 md:w-full h-auto relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" />  
         </div>
         
-        <h1 className="text-6xl md:text-8xl font-display font-bold tracking-tighter mb-6 uppercase leading-[0.9] text-yellow-400">
-          The Legend <br/><span className="text-white">Awaits</span>
+        <h1 className="text-6xl md:text-8xl font-maxwell font-bold tracking-tighter mb-6 uppercase leading-[0.9] text-yellow-400">
+          The Legend <br/><span className="text-white font-revolution">Awaits</span>
         </h1>
         
         <div className="w-24 h-1 bg-yellow-400 mb-8 mx-auto"></div>
 
-        <p className="text-xl md:text-2xl text-neutral-400 max-w-2xl font-light mb-12 tracking-wide font-display uppercase mx-auto">
+        <p className="text-xl md:text-2xl text-neutral-100 max-w-2xl font-light mb-12 tracking-wide font-maxwell uppercase mx-auto">
             Step into the mind of Alberto Ascari.<br/>Race against destiny.
         </p>
         
         <button 
             onClick={() => setScene(2)} 
-            className="group relative px-16 py-6 bg-red-600 text-white font-display font-bold text-xl tracking-[0.2em] uppercase overflow-hidden hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#facc15] hover:shadow-[4px_4px_0px_0px_#facc15] hover:translate-x-[2px] hover:translate-y-[2px]"
+            className="group relative px-16 py-6 bg-red-600 text-white font-maxwell font-bold text-xl tracking-[0.2em] uppercase overflow-hidden hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#facc15] hover:shadow-[4px_4px_0px_0px_#facc15] hover:translate-x-[2px] hover:translate-y-[2px]"
         >
             Enter Paddock
         </button>
@@ -122,7 +121,7 @@ export const VisitorBooking: React.FC = () => {
   if (scene === 2) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 animate-in slide-in-from-right-8 duration-500 bg-black">
-        <h2 className="text-5xl md:text-7xl font-display font-bold mb-4 uppercase tracking-tighter text-center text-yellow-400">Crew Size</h2>
+        <h2 className="text-5xl md:text-7xl font-maxwell font-bold mb-4 uppercase tracking-tighter text-center text-yellow-400">Crew Size</h2>
         <p className="text-white mb-12 text-center max-w-md uppercase font-bold tracking-widest text-sm">
             Select your mechanics count
         </p>
@@ -130,17 +129,17 @@ export const VisitorBooking: React.FC = () => {
         <div className="flex items-center gap-4 mb-12 select-none">
           <button 
             onClick={() => setPax(Math.max(1, pax - 1))} 
-            className="w-20 h-20 border-2 border-white text-4xl text-white hover:bg-white hover:text-black transition flex items-center justify-center font-display font-bold"
+            className="w-20 h-20 border-2 border-white text-4xl text-white hover:bg-white hover:text-black transition flex items-center justify-center font-maxwell font-bold"
           >−</button>
           
           <div className="flex flex-col items-center w-40 py-4 border-t-2 border-b-2 border-white bg-neutral-900">
-             <span className="text-8xl font-display font-bold tracking-tighter leading-none text-white">{pax}</span>
+             <span className="text-8xl font-maxwell font-bold tracking-tighter leading-none text-white">{pax}</span>
              <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-[0.3em]">PERSONS</span>
           </div>
           
           <button 
             onClick={() => setPax(pax + 1)} 
-            className="w-20 h-20 bg-white text-black text-4xl hover:bg-yellow-400 transition flex items-center justify-center font-display font-bold shadow-[4px_4px_0px_0px_#dc2626]"
+            className="w-20 h-20 bg-white text-black text-4xl hover:bg-yellow-400 transition flex items-center justify-center font-maxwell font-bold shadow-[4px_4px_0px_0px_#dc2626]"
           >+</button>
         </div>
 
@@ -151,7 +150,7 @@ export const VisitorBooking: React.FC = () => {
 
         <button 
             onClick={() => setScene(3)} 
-            className="w-full max-w-xs bg-red-600 text-white py-5 font-display font-bold text-xl tracking-widest uppercase hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#fff] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px]"
+            className="w-full max-w-xs bg-red-600 text-white py-5 font-maxwell font-bold text-xl tracking-widest uppercase hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#fff] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px]"
         >
           Confirm Size
         </button>
@@ -161,7 +160,11 @@ export const VisitorBooking: React.FC = () => {
 
   // --- SCENE 3: EXPERIENCE SELECTION ---
   if (scene === 3) {
-    if (experiences.length === 0) return <div className="p-12 text-center font-display font-bold uppercase text-white">No Experiences Loaded</div>;
+    if (experiences.length === 0) return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-12 text-center font-maxwell font-revolution text-3xl uppercase text-white">
+        No Experiences Loaded
+      </div>
+    );
 
     const primaryExp = experiences[0];
     const secondaryExp = experiences[1] || experiences[0];
@@ -179,7 +182,7 @@ export const VisitorBooking: React.FC = () => {
         </button>
 
         <div className="mb-12 border-b-4 border-white pb-6">
-            <h2 className="text-6xl md:text-8xl font-display font-bold uppercase tracking-tighter mb-2 text-yellow-400">Select Mode</h2>
+            <h2 className="text-6xl md:text-8xl font-maxwell font-bold uppercase tracking-tighter mb-2 text-yellow-400">Select Mode</h2>
             <div className="flex items-center gap-2">
                 <div className="h-2 w-2 bg-red-600"></div>
                 <p className="font-bold uppercase tracking-widest text-sm text-white">Choose your entry point</p>
@@ -201,7 +204,7 @@ export const VisitorBooking: React.FC = () => {
                      </span>
                 </div>
 
-                <h3 className="text-5xl font-display font-bold uppercase tracking-tighter mb-4 leading-none text-white">The Pit Lane</h3>
+                <h3 className="text-5xl font-maxwell font-bold uppercase tracking-tighter mb-4 leading-none text-white">The Pit Lane</h3>
                 <p className={`text-sm font-mono leading-relaxed mb-8 flex-grow ${isExp1Disabled ? 'text-neutral-500' : 'text-neutral-400'}`}>
                     // TEAM SYNC REQUIRED<br/>
                     Suit up as a 1950s mechanic. Change tires, refuel, and work as a unit. High intensity collaboration.
@@ -231,7 +234,7 @@ export const VisitorBooking: React.FC = () => {
                      </span>
                 </div>
 
-                <h3 className="text-5xl font-display font-bold uppercase tracking-tighter mb-4 leading-none text-black">The Prophecy</h3>
+                <h3 className="text-5xl font-maxwell font-bold uppercase tracking-tighter mb-4 leading-none text-black">The Prophecy</h3>
                 <p className="text-sm font-mono leading-relaxed mb-8 flex-grow text-neutral-800">
                     // OBSERVER MODE<br/>
                     Immerse yourself directly in the cinematic VR story. No pit duties. Pure narrative experience.
@@ -261,10 +264,10 @@ export const VisitorBooking: React.FC = () => {
 
         <div className="flex justify-between items-end mb-8 border-b-4 border-white pb-4">
             <div>
-                <h2 className="text-5xl md:text-7xl font-display font-bold uppercase tracking-tighter text-yellow-400">Schedule</h2>
+                <h2 className="text-5xl md:text-7xl font-maxwell font-bold uppercase tracking-tighter text-yellow-400">Schedule</h2>
                 <div className="flex items-center gap-2 mt-2">
                     <Calendar className="w-4 h-4 text-red-600" />
-                    <span className="text-sm font-bold uppercase tracking-widest font-display text-white">{format(new Date(), 'MMMM d, yyyy')}</span>
+                    <span className="text-sm font-bold uppercase tracking-widest font-maxwell text-white">{format(new Date(), 'MMMM d, yyyy')}</span>
                 </div>
             </div>
             <div className="hidden md:block text-right">
@@ -283,7 +286,7 @@ export const VisitorBooking: React.FC = () => {
                 {slotsForDate.length === 0 ? (
                     <div className="p-16 text-center">
                         <Clock className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
-                        <p className="font-display font-bold uppercase text-xl text-neutral-500">Track Closed</p>
+                        <p className="font-maxwell font-bold uppercase text-xl text-neutral-500">Track Closed</p>
                     </div>
                 ) : (
                     slotsForDate.map(slot => {
@@ -349,7 +352,7 @@ export const VisitorBooking: React.FC = () => {
             </button>
             
             <div className="mb-8 border-b-4 border-white pb-4">
-                <h2 className="text-5xl md:text-6xl font-display font-bold uppercase tracking-tighter text-yellow-400">Driver Details</h2>
+                <h2 className="text-5xl md:text-6xl font-maxwell font-bold uppercase tracking-tighter text-yellow-400">Driver Details</h2>
                 <p className="font-mono text-xs mt-2 text-neutral-500">// MANDATORY TELEMETRY DATA</p>
             </div>
 
@@ -409,7 +412,7 @@ export const VisitorBooking: React.FC = () => {
 
                 <div className="md:col-span-1">
                     <div className="bg-white text-black p-6 sticky top-24 border-2 border-white">
-                        <h4 className="font-display font-bold uppercase text-2xl mb-4 border-b border-black/20 pb-4">Summary</h4>
+                        <h4 className="font-maxwell font-bold uppercase text-2xl mb-4 border-b border-black/20 pb-4">Summary</h4>
                         <div className="space-y-4 font-mono text-sm">
                             <div className="flex justify-between">
                                 <span className="text-neutral-500">Date</span>
@@ -442,17 +445,17 @@ export const VisitorBooking: React.FC = () => {
   if (scene === 6 && selectedSlot) {
     return (
         <div className="max-w-2xl mx-auto p-6 animate-in zoom-in-95 duration-500">
-            <h2 className="text-5xl font-display font-bold uppercase tracking-tighter mb-8 text-center text-yellow-400">Safety Check</h2>
+            <h2 className="text-5xl font-maxwell font-bold uppercase tracking-tighter mb-8 text-center text-yellow-400">Safety Check</h2>
 
             <div className="bg-neutral-900 border-2 border-white p-8 relative overflow-hidden mb-8 shadow-[12px_12px_0px_0px_#fff]">
                 <div className="space-y-6 relative z-10 text-white">
                     <div className="flex justify-between border-b-2 border-dashed border-neutral-700 pb-4">
                          <span className="text-xs font-bold uppercase text-neutral-400 tracking-widest">Event</span>
-                         <span className="font-bold uppercase font-display tracking-wide text-yellow-400">Black Cats & Chequered Flags</span>
+                         <span className="font-bold uppercase font-maxwell tracking-wide text-yellow-400">Black Cats & Chequered Flags</span>
                     </div>
                     <div className="flex justify-between border-b-2 border-dashed border-neutral-700 pb-4">
                          <span className="text-xs font-bold uppercase text-neutral-400 tracking-widest">Experience</span>
-                         <span className="font-bold uppercase font-display tracking-wide">{selectedExpName}</span>
+                         <span className="font-bold uppercase font-maxwell tracking-wide">{selectedExpName}</span>
                     </div>
                     <div className="flex justify-between border-b-2 border-dashed border-neutral-700 pb-4">
                          <span className="text-xs font-bold uppercase text-neutral-400 tracking-widest">Launch</span>
@@ -483,7 +486,7 @@ export const VisitorBooking: React.FC = () => {
                 <button 
                     disabled={!agreedToTerms}
                     onClick={handleValidationSubmit} 
-                    className="w-2/3 bg-red-600 text-white font-display font-bold uppercase text-xl tracking-widest py-5 hover:bg-white hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[8px_8px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#fff] transition-all"
+                    className="w-2/3 bg-red-600 text-white font-maxwell font-bold uppercase text-xl tracking-widest py-5 hover:bg-white hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[8px_8px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#fff] transition-all"
                 >
                     Authorize Entry
                 </button>
@@ -500,7 +503,7 @@ export const VisitorBooking: React.FC = () => {
     return (
       <div className="min-h-[85vh] flex flex-col items-center justify-center p-6 text-center animate-in zoom-in duration-700">
         <div className="mb-10">
-            <h2 className="text-7xl md:text-9xl font-display font-bold uppercase tracking-tighter leading-none mb-2 text-yellow-400">Access<br/>Granted</h2>
+            <h2 className="text-7xl md:text-9xl font-maxwell font-bold uppercase tracking-tighter leading-none mb-2 text-yellow-400">Access<br/>Granted</h2>
             <p className="text-xl font-mono uppercase tracking-widest mt-4 text-white">See you on the grid.</p>
         </div>
 
@@ -524,12 +527,7 @@ export const VisitorBooking: React.FC = () => {
         </div>
 
         <div className="flex flex-col gap-4 mt-8 w-full max-w-sm">
-            <button 
-                onClick={() => generateBookingPDF(booking, expName)}
-                className="bg-white text-black font-bold uppercase py-4 hover:bg-yellow-400 transition-colors flex items-center justify-center gap-2"
-            >
-                <Download className="w-5 h-5" /> Download Boarding Pass (PDF)
-            </button>
+
              <button 
                 onClick={() => generateQRImage(booking, expName)}
                 className="bg-neutral-900 border-2 border-white text-white font-bold uppercase py-4 hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"

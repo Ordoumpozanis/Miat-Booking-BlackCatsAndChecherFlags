@@ -46,7 +46,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ targetView, onLogin, o
 
          <div className="p-10">
             <div className="mb-10">
-                <h2 className="text-4xl font-display font-bold uppercase tracking-tighter mb-2 text-white">
+                <h2 className="text-4xl font-maxwell font-bold uppercase tracking-tighter mb-2 text-white">
                     {targetView === 'admin' ? 'Command' : 'Paddock'}
                 </h2>
                 <div className="h-1 w-12 bg-red-600"></div>
@@ -94,7 +94,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ targetView, onLogin, o
                     <button 
                         type="submit" 
                         disabled={loading}
-                        className="w-full bg-white text-black font-display font-bold text-xl uppercase tracking-widest py-4 hover:bg-yellow-400 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 border-2 border-transparent"
+                        className="w-full bg-white text-black font-maxwell font-bold text-xl uppercase tracking-widest py-4 hover:bg-yellow-400 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 border-2 border-transparent"
                     >
                         {loading ? 'Verifying...' : 'Authorize'}
                     </button>

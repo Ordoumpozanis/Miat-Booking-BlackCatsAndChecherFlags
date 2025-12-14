@@ -25,18 +25,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, setView, currentView, 
         <div className="max-w-6xl mx-auto px-6 py-5 flex justify-between items-center">
           <div className="flex items-center cursor-pointer group" onClick={() => setView('home')}>
             <Image 
-              src="/logo-bc.png" 
+              src="/Logo MIAT_NEG.png" 
               alt="Black Cats & Chequered Flags Experience"
-              width={200}
-              height={60}
-              className="h-10 w-auto md:h-12 lg:h-14 object-contain transition-transform group-hover:scale-105"
+              width={300}
+              height={80}
+              className="h-14 w-auto md:h-12 lg:h-14 object-contain transition-transform group-hover:scale-105"
               priority
             />
           </div>
           
           <div className="flex items-center gap-8">
               {/* Desktop Nav */}
-              <nav className="hidden md:flex items-center gap-6 text-sm font-bold tracking-widest uppercase font-display">
+              <nav className="hidden md:flex items-center gap-6 text-sm font-bold tracking-widest uppercase font-maxwell">
                 <button onClick={() => setView('home')} className={`transition hover:text-yellow-400 ${currentView === 'home' ? 'text-white border-b-2 border-white' : 'text-neutral-500'}`}>Visitor</button>
                 <button onClick={() => setView('admin')} className={`transition hover:text-yellow-400 ${currentView === 'admin' ? 'text-white border-b-2 border-white' : 'text-neutral-500'}`}>Admin</button>
                 <button onClick={() => setView('staff')} className={`transition hover:text-yellow-400 ${currentView === 'staff' ? 'text-white border-b-2 border-white' : 'text-neutral-500'}`}>Staff</button>
@@ -61,15 +61,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, setView, currentView, 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t-2 border-white/20 grid grid-cols-3 pb-safe z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
         <div onClick={() => setView('home')} className={navItemClass('home')}>
           <Ticket className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-bold tracking-widest uppercase font-display">Visit</span>
+          <span className="text-[10px] font-bold tracking-widest uppercase font-maxwell">Visit</span>
         </div>
         <div onClick={() => setView('admin')} className={navItemClass('admin')}>
           <LayoutDashboard className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-bold tracking-widest uppercase font-display">Admin</span>
+          <span className="text-[10px] font-bold tracking-widest uppercase font-maxwell">Admin</span>
         </div>
         <div onClick={() => setView('staff')} className={navItemClass('staff')}>
           <ScanLine className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-bold tracking-widest uppercase font-display">Staff</span>
+          <span className="text-[10px] font-bold tracking-widest uppercase font-maxwell">Staff</span>
         </div>
       </nav>
     </div>

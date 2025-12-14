@@ -3,26 +3,26 @@
 :root {
   --background: #000000;
   --foreground: #ffffff;
-  --font-inter: var(--font-inter);
-  --font-oswald: var(--font-oswald);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
-  --font-display: var(--font-oswald);
+  --font-display: var(--font-maxwell);
+  --font-maxwell: var(--font-maxwell);
+  --font-revolution: var(--font-revolution);
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
 body { 
-  font-family: var(--font-inter), 'Inter', sans-serif; 
+  font-family: var(--font-sans), 'Inter', sans-serif; 
   background-color: #000000; 
   color: #ffffff;
 }
 
 h1, h2, h3, h4, h5, h6, .font-display { 
-  font-family: var(--font-oswald), 'Oswald', sans-serif; 
+  font-family: var(--font-display); 
 }
 
 /* Hide scrollbar for cleaner UI in modals */

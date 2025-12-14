@@ -87,7 +87,7 @@ export const StaffDashboard: React.FC = () => {
       {/* Control Panel Section */}
       <div className="h-2/3 md:h-full md:w-1/2 bg-neutral-900 p-6 flex flex-col overflow-y-auto border-l-4 border-white">
         <div className="flex items-center justify-between mb-8 border-b-2 border-white pb-4">
-            <h2 className="text-3xl font-display font-bold uppercase tracking-tighter text-yellow-400">Gate Control</h2>
+            <h2 className="text-3xl font-maxwell font-bold uppercase tracking-tighter text-yellow-400">Gate Control</h2>
             <div className="w-3 h-3 bg-red-600 animate-pulse"></div>
         </div>
         
@@ -109,7 +109,7 @@ export const StaffDashboard: React.FC = () => {
         {scanStatus === 'error' && !pendingBooking && (
              <div className="bg-red-600 text-white p-6 text-center border-2 border-white shadow-[8px_8px_0px_0px_#fff]">
                 <XCircle className="w-12 h-12 mx-auto mb-2" />
-                <h3 className="text-2xl font-display font-bold uppercase">{errorMessage}</h3>
+                <h3 className="text-2xl font-maxwell font-bold uppercase">{errorMessage}</h3>
                 <button onClick={() => setScanStatus('idle')} className="mt-4 text-xs font-bold uppercase underline">Reset Scanner</button>
              </div>
         )}
@@ -118,7 +118,7 @@ export const StaffDashboard: React.FC = () => {
             <div className="flex-grow flex flex-col animate-in slide-in-from-right-8 duration-300">
                 <div className="mb-6 bg-black border-2 border-white p-4">
                     <span className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest block mb-1">Pass Holder</span>
-                    <h3 className="text-3xl font-display font-bold uppercase tracking-tighter leading-none text-white">{pendingBooking.visitorName}</h3>
+                    <h3 className="text-3xl font-maxwell font-bold uppercase tracking-tighter leading-none text-white">{pendingBooking.visitorName}</h3>
                     <div className="flex gap-4 mt-2 text-xs font-mono text-neutral-400 border-t border-neutral-800 pt-2">
                         <span>{pendingBooking.time}</span>
                         <span>REF: {pendingBooking.referenceCode}</span>
@@ -145,7 +145,7 @@ export const StaffDashboard: React.FC = () => {
                 <div className="mt-auto space-y-4">
                     <button 
                         onClick={confirmCheckIn}
-                        className="w-full py-5 bg-red-600 text-white font-display font-bold uppercase text-xl tracking-widest hover:bg-white hover:text-black transition-colors shadow-[6px_6px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                        className="w-full py-5 bg-red-600 text-white font-maxwell font-bold uppercase text-xl tracking-widest hover:bg-white hover:text-black transition-colors shadow-[6px_6px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                     >
                         Confirm Entry
                     </button>
@@ -164,7 +164,7 @@ export const StaffDashboard: React.FC = () => {
                 <div className="w-24 h-24 bg-yellow-400 text-black flex items-center justify-center mb-6 shadow-[8px_8px_0px_0px_#dc2626]">
                     <UserCheck className="w-12 h-12" />
                 </div>
-                <h3 className="text-3xl font-display font-bold uppercase mb-2 text-white">Verified</h3>
+                <h3 className="text-3xl font-maxwell font-bold uppercase mb-2 text-white">Verified</h3>
                 <p className="font-mono text-sm text-neutral-400 mb-8 max-w-xs mx-auto">{confirmedResult.message}</p>
                 <button onClick={() => setConfirmedResult(null)} className="bg-white text-black border-2 border-white px-8 py-3 font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors">
                     Next Scan

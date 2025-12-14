@@ -63,7 +63,7 @@ export const AdminDashboard: React.FC = () => {
     <div className="max-w-6xl mx-auto p-4 md:p-8 font-sans bg-black text-white min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-end mb-8 border-b-4 border-white pb-4">
         <div>
-           <h1 className="text-4xl md:text-5xl font-display font-bold uppercase tracking-tighter mb-2 text-yellow-400">Control Tower</h1>
+           <h1 className="text-4xl md:text-5xl font-maxwell font-bold uppercase tracking-tighter mb-2 text-yellow-400">Control Tower</h1>
         </div>
         <div className="flex gap-2 mt-4 md:mt-0">
           <button onClick={() => setActiveTab('experiences')} className={`px-6 py-2 text-sm font-bold uppercase tracking-widest border-2 border-white transition-all ${activeTab === 'experiences' ? 'bg-white text-black' : 'bg-black text-white hover:bg-neutral-800'}`}>Experiences</button>
@@ -152,7 +152,7 @@ const ExperienceCard: React.FC<{ experience: Experience, onDelete: () => void, o
       <div className="p-4 flex items-center justify-between bg-black border-b-2 border-white">
         <div className="flex items-center gap-3">
           <button onClick={toggleActive} className={`w-4 h-4 border border-white ${data.isActive ? 'bg-yellow-400' : 'bg-black'}`}></button>
-          <span className="font-display font-bold uppercase tracking-wide text-white">{data.name}</span>
+          <span className="font-maxwell font-bold uppercase tracking-wide text-white">{data.name}</span>
         </div>
         <button onClick={() => setIsEditing(!isEditing)} className="text-xs font-bold uppercase underline hover:text-red-600 text-neutral-400">{isEditing ? 'Cancel' : 'Edit'}</button>
       </div>
@@ -175,9 +175,20 @@ const ExperienceCard: React.FC<{ experience: Experience, onDelete: () => void, o
                    <label className="text-[10px] font-bold uppercase text-neutral-400">Gap/Offset (m)</label>
                    <input type="number" className="w-full bg-black border border-neutral-700 p-1 font-mono text-white" value={data.offsetMinutes} onChange={e => setData({...data, offsetMinutes: parseInt(e.target.value)})} />
                </div>
-               <div>
+                <div>
                    <label className="text-[10px] font-bold uppercase text-neutral-400">Capacity</label>
                    <input type="number" className="w-full bg-black border border-neutral-700 p-1 font-mono text-white" value={data.maxCapacity} onChange={e => setData({...data, maxCapacity: parseInt(e.target.value)})} />
+               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+               <div>
+                   <label className="text-[10px] font-bold uppercase text-neutral-400">Start Date</label>
+                   <input type="date" className="w-full bg-black border border-neutral-700 p-1 font-mono text-white" value={data.startDate} onChange={e => setData({...data, startDate: e.target.value})} />
+               </div>
+               <div>
+                   <label className="text-[10px] font-bold uppercase text-neutral-400">End Date</label>
+                   <input type="date" className="w-full bg-black border border-neutral-700 p-1 font-mono text-white" value={data.endDate} onChange={e => setData({...data, endDate: e.target.value})} />
                </div>
             </div>
             
