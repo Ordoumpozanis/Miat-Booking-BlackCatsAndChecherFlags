@@ -5,6 +5,8 @@ import { Experience, Booking, DaySchedule } from '../types';
 
 export const storageService = {
   // --- EXPERIENCES (Admin) ---
+ 
+  
   getExperiences: async (): Promise<Experience[]> => {
     // 1. Fetch Experiences
     const { data: exps, error } = await supabase
@@ -17,7 +19,6 @@ export const storageService = {
         return [];
     }
 
-    // 2. Fetch Schedules (Joined manually to match UI shape)
     const { data: scheds } = await supabase.from('experience_schedules').select('*');
 
     return exps.map((e: any) => {
@@ -32,10 +33,11 @@ export const storageService = {
         id: e.id,
         name: e.title,
         description: e.description || '',
+        timezone: e.timezone || 'UTC', // <--- Load from DB
         maxCapacity: e.max_people,
         durationMinutes: e.duration_minutes,
         offsetMinutes: e.setup_minutes,
-        color: e.timezone === 'UTC' ? 'bg-blue-600' : 'bg-emerald-600',
+        color: 'bg-neutral-800', // Simplified color logic
         isActive: true, 
         startDate: e.valid_from,
         endDate: e.valid_until,
@@ -45,8 +47,6 @@ export const storageService = {
   },
 
   updateExperience: async (exp: Experience) => {
-    // 1. Upsert Experience
-    // If ID is not a valid UUID (e.g. "new"), undefined lets DB generate one
     const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
     const idToUse = isUUID(exp.id) ? exp.id : undefined;
 
@@ -56,12 +56,12 @@ export const storageService = {
         id: idToUse,
         title: exp.name,
         description: exp.description,
+        timezone: exp.timezone, // <--- SAVE THE CHOSEN TIMEZONE
         max_people: exp.maxCapacity,
         duration_minutes: exp.durationMinutes,
         setup_minutes: exp.offsetMinutes,
         valid_from: exp.startDate,
         valid_until: exp.endDate,
-        timezone: 'CET',
       })
       .select()
       .single();
@@ -69,7 +69,7 @@ export const storageService = {
     if (expError) throw new Error(expError.message);
 
     if (savedExp) {
-      // 2. Replace Schedules
+      // (Schedule saving logic remains the same...)
       await supabase.from('experience_schedules').delete().eq('experience_id', savedExp.id);
       
       const schedPayload = exp.timeIntervals.map((t) => ({
@@ -81,9 +81,7 @@ export const storageService = {
       if (schedPayload.length > 0) {
         await supabase.from('experience_schedules').insert(schedPayload);
       }
-
-      // 3. TRIGGER GENERATOR RPC
-      // This fills the 'slots' table based on the new schedule
+      
       await supabase.rpc('generate_slots_for_experience', { target_experience_id: savedExp.id });
     }
   },

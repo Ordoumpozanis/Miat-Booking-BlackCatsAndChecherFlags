@@ -1,7 +1,9 @@
 import QRCode from 'qrcode';
 import { Booking } from '../types';
 
-export const generateQRImage = async (booking: Booking, experienceName: string) => {
+// FIX: Added '_timezone' as 3rd argument to satisfy the caller. 
+// It is prefixed with _ and unused, so it will NOT appear on the ticket.
+export const generateQRImage = async (booking: Booking, experienceName: string, _timezone?: string) => {
     // 1. High-Res Canvas Setup (Poster Style)
     const width = 800;
     const height = 1500; // Increased height again for spacing
@@ -93,7 +95,7 @@ export const generateQRImage = async (booking: Booking, experienceName: string) 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#FACC15'; // Yellow
     ctx.font = 'bold 80px "Maxwell", sans-serif'; 
-    ctx.fillText('PADDOCK PASS', width / 2, cursorY);
+    ctx.fillText('EXPERIENCE PASS', width / 2, cursorY);
     cursorY += 50;
     
     ctx.fillStyle = '#FFFFFF';

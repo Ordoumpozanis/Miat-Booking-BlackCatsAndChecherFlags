@@ -1,3 +1,5 @@
+// src/types.ts
+
 export enum UserRole {
   VISITOR = 'VISITOR',
   ADMIN = 'ADMIN',
@@ -10,17 +12,18 @@ export interface TimeInterval {
 }
 
 export interface Experience {
-  id: string; // UUID
-  name: string;             // DB: title
+  id: string; 
+  name: string;
   description: string;
-  maxCapacity: number;      // DB: max_people
-  durationMinutes: number;  // DB: duration_minutes
-  offsetMinutes: number;    // DB: setup_minutes
-  color: string;            // UI Only
-  isActive: boolean;        // Inferred
-  startDate: string;        // DB: valid_from
-  endDate: string;          // DB: valid_until
-  timeIntervals: TimeInterval[]; // DB: experience_schedules
+  timezone: string; // <--- NEW: CRITICAL FIELD (e.g., 'Europe/Athens')
+  maxCapacity: number;
+  durationMinutes: number;
+  offsetMinutes: number;
+  color: string;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
+  timeIntervals: TimeInterval[];
 }
 
 export interface DaySchedule {
@@ -42,26 +45,21 @@ export interface Booking {
   referenceCode: string;
   checkedIn: boolean;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
-  guestIds?: string[]; // Added for Staff Check-in Logic
+  guestIds?: string[];
 }
 
 export interface Slot {
-  id: string; // UUID
+  id: string;
   experienceId: string;
-  startTime: Date;
-  endTime: Date;
+  startTime: Date; // JavaScript Date object (Browser Local Time)
+  endTime: Date;   // JavaScript Date object (Browser Local Time)
+  
+  // New helper to display the time correctly in the UI
+  formattedTime: string; 
+  
   maxCapacity: number;
   currentBookings: number;
   remainingCapacity: number;
   status: 'OPEN' | 'PARTIAL' | 'FULL' | 'PASSED';
-  isBlocked: boolean; // Added for Admin
-}
-
-export interface SlotOption {
-  type: 'TOGETHER' | 'SPLIT';
-  description: string;
-  slots: {
-    slot: Slot;
-    paxToAssign: number;
-  }[];
+  isBlocked: boolean;
 }

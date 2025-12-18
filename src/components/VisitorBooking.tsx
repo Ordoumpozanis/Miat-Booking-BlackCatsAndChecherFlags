@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowRight,
   Check,
-  AlertCircle,
+
   Calendar,
   ShieldCheck,
   Trophy,
@@ -12,6 +12,10 @@ import {
   Clock,
   Zap,
   QrCode,
+  X,
+  AlertTriangle,
+  Search,
+  User
 } from 'lucide-react';
 import { Experience, Booking, Slot } from '../types';
 import { storageService } from '../services/storageService';
@@ -21,26 +25,36 @@ import { format } from 'date-fns';
 import Image from 'next/image';
 
 export const VisitorBooking: React.FC = () => {
-  // Scene Control: 1=Welcome, 2=Pax, 3=ExpSelection, 4=SlotSel, 5=Names, 6=Validate, 7=Ticket
+  // Scene Control
   const [scene, setScene] = useState(1);
   const [pax, setPax] = useState(2);
 
+  // Data State
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [isLoadingExperiences, setIsLoadingExperiences] = useState(true);
-
   const [selectedExpId, setSelectedExpId] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-
   const [nextSlots, setNextSlots] = useState<{ [key: string]: { label: string; available: boolean } }>({});
   const [slotsForDate, setSlotsForDate] = useState<Slot[]>([]);
 
+  // User Input State
   const [visitorName, setVisitorName] = useState('');
   const [visitorEmail, setVisitorEmail] = useState('');
   const [attendees, setAttendees] = useState<string[]>([]);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [confirmedBookings, setConfirmedBookings] = useState<Booking[]>([]);
 
-  // Load Experiences + compute "Next slot" labels
+  // Cancellation State
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelStep, setCancelStep] = useState<'INPUT' | 'CONFIRM' | 'SUCCESS'>('INPUT');
+  const [cName, setCName] = useState(''); // Kept in state but unused in form to prevent TS errors if referenced elsewhere
+  const [cEmail, setCEmail] = useState('');
+  const [cRef, setCRef] = useState('');
+  const [cError, setCError] = useState('');
+  const [cLoading, setCLoading] = useState(false);
+  const [ticketToCancel, setTicketToCancel] = useState<any>(null);
+
+  // 1. Load Experiences
   useEffect(() => {
     let cancelled = false;
 
@@ -70,7 +84,7 @@ export const VisitorBooking: React.FC = () => {
             return [
               exp.id,
               {
-                label: `NEXT: TODAY ${format(next.startTime, 'HH:mm')}`,
+                label: `NEXT: TODAY ${next.formattedTime}`,
                 available: true,
               },
             ] as const;
@@ -95,13 +109,10 @@ export const VisitorBooking: React.FC = () => {
     };
 
     run();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [pax, scene]);
 
-  // Load Slots for selected experience (Scene 4)
+  // 2. Load Slots
   useEffect(() => {
     let cancelled = false;
 
@@ -117,7 +128,9 @@ export const VisitorBooking: React.FC = () => {
 
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const rawSlots = await bookingService.generateSlotsForDateAsync(freshExp, todayStr);
+      
       const now = new Date();
+      // Filter out passed slots based on local system time comparison for simplicity in UI
       const filtered = rawSlots.filter((s) => s.endTime > now);
 
       if (cancelled) return;
@@ -125,12 +138,67 @@ export const VisitorBooking: React.FC = () => {
     };
 
     run();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [scene, selectedExpId]);
 
+  // --- Cancellation Handlers ---
+  const handleLookupTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCError('');
+    setCLoading(true);
+
+    try {
+        const ticket = await bookingService.lookupBooking(cEmail.trim(), cRef.trim());
+        
+        if (!ticket) {
+            setCError('Ticket not found. Check code or email.');
+            setCLoading(false);
+            return;
+        }
+
+        if (ticket.status === 'CANCELLED') {
+            setCError('This ticket has already been cancelled.');
+            setCLoading(false);
+            return;
+        }
+
+        setTicketToCancel(ticket);
+        setCancelStep('CONFIRM');
+    } catch (err: any) {
+        setCError(err.message || 'Lookup failed.');
+    } finally {
+        setCLoading(false);
+    }
+  };
+
+  const handleFinalizeCancellation = async () => {
+    setCLoading(true);
+    try {
+        const result = await bookingService.cancelBooking(cEmail.trim(), cRef.trim());
+        
+        if (result.success) {
+            setCancelStep('SUCCESS');
+        } else {
+            setCError(result.message || 'Cancellation failed.');
+        }
+    } catch (err: any) {
+        setCError(err.message || 'System error.');
+    } finally {
+        setCLoading(false);
+    }
+  };
+
+  const closeCancelModal = () => {
+      setIsCancelModalOpen(false);
+      setCancelStep('INPUT');
+      setCName('');
+      setCEmail('');
+      setCRef('');
+      setCError('');
+      setTicketToCancel(null);
+  };
+
+  // --- Booking Handler ---
   const handleValidationSubmit = async () => {
     if (!selectedSlot || !selectedExpId) return;
 
@@ -151,19 +219,19 @@ export const VisitorBooking: React.FC = () => {
         <div className="absolute top-0 left-0 w-32 h-32 border-l-4 border-t-4 border-yellow-400/20"></div>
         <div className="absolute bottom-0 right-0 w-32 h-32 border-r-4 border-b-4 border-yellow-400/20"></div>
 
-        <div className="mb-8 relative w-full max-w-sm flex justify-center">
+        <div className="mb-8 relative  max-w-sm flex justify-center">
           <Image
             src="/logo-bc.png"
-            alt="Black Cats & Chequered Flags Logo"
+            alt="Logo"
             width={200}
             height={80}
-            className="w-3/12 md:w-full h-auto relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+            className="w-full xl:w-3/12 md:w-full h-auto relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
           />
         </div>
 
-        <h1 className="text-6xl md:text-8xl font-maxwell font-bold tracking-tighter mb-6 uppercase leading-[0.9] text-yellow-400">
+        <h1 className="text-6xl md:text-8xl !font-revolution font-bold tracking-tighter mb-6 uppercase leading-[0.9] text-yellow-400">
           The Legend <br />
-          <span className="text-white font-revolution">Awaits</span>
+          <span className="text-white !font-revolution">Awaits</span>
         </h1>
 
         <div className="w-24 h-1 bg-yellow-400 mb-8 mx-auto"></div>
@@ -176,10 +244,138 @@ export const VisitorBooking: React.FC = () => {
 
         <button
           onClick={() => setScene(2)}
-          className="group relative px-16 py-6 bg-red-600 text-white font-maxwell font-bold text-xl tracking-[0.2em] uppercase overflow-hidden hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#facc15] hover:shadow-[4px_4px_0px_0px_#facc15] hover:translate-x-[2px] hover:translate-y-[2px]"
+          className="group relative px-16 py-6 bg-red-600 text-white !font-revolution font-bold text-xl tracking-[0.2em] uppercase overflow-hidden hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#facc15] hover:shadow-[4px_4px_0px_0px_#facc15] hover:translate-x-[2px] hover:translate-y-[2px]"
         >
-          Enter Paddock
+          Enter Experience
         </button>
+
+        <button
+            onClick={() => setIsCancelModalOpen(true)}
+            className="mt-12 text-xs font-bold uppercase tracking-widest text-neutral-500 hover:text-red-500 border-b border-transparent hover:border-red-500 pb-1 transition-all"
+        >
+            Cancel Ticket
+        </button>
+
+        {isCancelModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="w-full max-w-md bg-neutral-900 border-2 border-white relative shadow-[0_0_50px_rgba(220,38,38,0.2)]">
+                    <button 
+                        onClick={closeCancelModal}
+                        className="absolute top-4 right-4 text-neutral-500 hover:text-white"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+
+                    <div className="p-8 text-left">
+                        <h3 className="text-3xl font-maxwell font-bold uppercase text-red-600 mb-2">Cancel Ticket</h3>
+                        <div className="h-1 w-12 bg-white mb-6"></div>
+
+                        {cancelStep === 'INPUT' && (
+                            <form onSubmit={handleLookupTicket} className="space-y-4">
+                                <p className="text-sm font-mono text-neutral-400 mb-4">
+                                    Enter details exactly as they appear on your ticket.
+                                </p>
+                                
+                                <div>
+                                    <label className="text-[10px] font-bold uppercase text-neutral-500 block mb-1">Booking Ref (6 Chars)</label>
+                                    <input 
+                                        required
+                                        maxLength={6}
+                                        value={cRef}
+                                        onChange={(e) => setCRef(e.target.value.toUpperCase())}
+                                        className="w-full bg-black border border-neutral-700 p-3 font-mono text-lg text-white uppercase focus:border-red-600 outline-none"
+                                        placeholder="EX: A1B2C3"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-bold uppercase text-neutral-500 block mb-1">Email Address</label>
+                                    <input 
+                                        required
+                                        type="email"
+                                        value={cEmail}
+                                        onChange={(e) => setCEmail(e.target.value)}
+                                        className="w-full bg-black border border-neutral-700 p-3 font-mono text-sm text-white focus:border-red-600 outline-none"
+                                        placeholder="email@example.com"
+                                    />
+                                </div>
+
+                                {cError && (
+                                    <div className="bg-red-900/30 border border-red-600 text-red-200 text-xs font-mono p-3 flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4" /> {cError}
+                                    </div>
+                                )}
+
+                                <button 
+                                    type="submit"
+                                    disabled={cLoading}
+                                    className="w-full bg-white text-black font-bold uppercase py-4 tracking-widest hover:bg-red-600 hover:text-white transition-colors mt-4 flex justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {cLoading ? 'Searching...' : <><Search className="w-4 h-4" /> Find Ticket</>}
+                                </button>
+                            </form>
+                        )}
+
+                        {cancelStep === 'CONFIRM' && ticketToCancel && (
+                            <div className="space-y-6 animate-in slide-in-from-right-8">
+                                <div className="bg-black border border-neutral-700 p-4">
+                                    <div className="text-xs font-bold uppercase text-neutral-500 mb-1">Ticket Found</div>
+                                    <div className="text-xl font-bold uppercase text-white mb-1">{ticketToCancel.title}</div>
+                                    <div className="font-mono text-yellow-400">
+                                        {format(new Date(ticketToCancel.date), 'dd MMM yyyy')} @ {ticketToCancel.time}
+                                    </div>
+                                </div>
+
+                                <div className="text-neutral-300 text-sm font-medium border-l-2 border-red-600 pl-4 py-1">
+                                    Are you sure? This action is <span className="text-white font-bold uppercase">permanent</span>. 
+                                    Your spot will be immediately released to other visitors.
+                                </div>
+
+                                {cError && (
+                                    <div className="bg-red-900/30 border border-red-600 text-red-200 text-xs font-mono p-3">
+                                        {cError}
+                                    </div>
+                                )}
+
+                                <div className="flex gap-4">
+                                    <button 
+                                        onClick={() => setCancelStep('INPUT')}
+                                        className="w-1/2 border border-white text-white font-bold uppercase py-3 hover:bg-white hover:text-black"
+                                    >
+                                        Back
+                                    </button>
+                                    <button 
+                                        onClick={handleFinalizeCancellation}
+                                        disabled={cLoading}
+                                        className="w-1/2 bg-red-600 text-white font-bold uppercase py-3 hover:bg-red-700 disabled:opacity-50"
+                                    >
+                                        {cLoading ? 'Processing...' : 'Confirm Cancel'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {cancelStep === 'SUCCESS' && (
+                            <div className="text-center py-8 animate-in zoom-in duration-300">
+                                <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-neutral-600">
+                                    <X className="w-8 h-8 text-neutral-400" />
+                                </div>
+                                <h4 className="text-2xl font-maxwell font-bold uppercase text-white mb-2">Ticket Cancelled</h4>
+                                <p className="text-neutral-400 text-sm mb-8">
+                                    Your booking has been removed. We hope to see you another time.
+                                </p>
+                                <button 
+                                    onClick={closeCancelModal}
+                                    className="border-b border-white text-white font-bold uppercase pb-1 hover:text-yellow-400 hover:border-yellow-400"
+                                >
+                                    Close Window
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
       </div>
     );
   }
@@ -188,10 +384,10 @@ export const VisitorBooking: React.FC = () => {
   if (scene === 2) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 animate-in slide-in-from-right-8 duration-500 bg-black">
-        <h2 className="text-5xl md:text-7xl font-maxwell font-bold mb-4 uppercase tracking-tighter text-center text-yellow-400">
+        <h2 className="text-5xl !font-revolution font-bold tracking-tighter mb-6 uppercase leading-[0.9] text-yellow-400">
           Crew Size
         </h2>
-        <p className="text-white mb-12 text-center max-w-md uppercase font-bold tracking-widest text-sm">
+        <p className="text-white mb-12 text-center max-w-md uppercase !font-bold font-revolution tracking-widest text-sm">
           Select your mechanics count
         </p>
 
@@ -205,7 +401,7 @@ export const VisitorBooking: React.FC = () => {
 
           <div className="flex flex-col items-center w-40 py-4 border-t-2 border-b-2 border-white bg-neutral-900">
             <span className="text-8xl font-maxwell font-bold tracking-tighter leading-none text-white">{pax}</span>
-            <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-[0.3em]">PERSONS</span>
+            <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-[0.3em]">PEOPLE</span>
           </div>
 
           <button
@@ -216,14 +412,28 @@ export const VisitorBooking: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 text-white border border-white bg-transparent px-6 py-3 text-xs font-bold uppercase tracking-widest mb-12">
-          <AlertCircle className="w-4 h-4 text-yellow-400" />
-          <span>Max 4 Mechanics for Collab Mode</span>
+        <div className="w-full max-w-xs space-y-2 mb-8">
+          <div className="flex items-center justify-between border border-white/50 bg-neutral-900/50 px-5 py-3 backdrop-blur-sm shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
+             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">The Pit Lane</span>
+             <div className="flex items-center gap-1.5 font-maxwell text-xl leading-none text-white">
+               <User className="w-5 h-5 text-neutral-400" strokeWidth={2.5} />
+               <span className="text-[10px] text-neutral-500 font-bold font-sans">X</span>
+               <span className="mt-0.5">4</span>
+             </div>
+          </div>
+          <div className="flex items-center justify-between border border-white/50 bg-neutral-900/50 px-5 py-3 backdrop-blur-sm shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
+             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">The Prophecy</span>
+             <div className="flex items-center gap-1.5 font-maxwell text-xl leading-none text-white">
+               <User className="w-5 h-5 text-neutral-400" strokeWidth={2.5} />
+               <span className="text-[10px] text-neutral-500 font-bold font-sans">X</span>
+               <span className="mt-0.5">12</span>
+             </div>
+          </div>
         </div>
 
         <button
           onClick={() => setScene(3)}
-          className="w-full max-w-xs bg-red-600 text-white py-5 font-maxwell font-bold text-xl tracking-widest uppercase hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#fff] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px]"
+          className="w-full max-w-xs bg-red-600 text-white py-5 font-revolution font-bold text-xl tracking-widest uppercase hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#fff] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px]"
         >
           Confirm Size
         </button>
@@ -267,12 +477,12 @@ export const VisitorBooking: React.FC = () => {
         </button>
 
         <div className="mb-12 border-b-4 border-white pb-6">
-          <h2 className="text-6xl md:text-8xl font-maxwell font-bold uppercase tracking-tighter mb-2 text-yellow-400">
+          <h2 className="text-6xl md:text-8xl !font-revolution font-bold uppercase tracking-tighter mb-2 text-yellow-400">
             Select Mode
           </h2>
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 bg-red-600"></div>
-            <p className="font-bold uppercase tracking-widest text-sm text-white">Choose your entry point</p>
+            <p className="font-maxwell font-bold uppercase tracking-widest text-sm text-white">Choose your entry point</p>
           </div>
         </div>
 
@@ -303,7 +513,7 @@ export const VisitorBooking: React.FC = () => {
               </span>
             </div>
 
-            <h3 className="text-5xl font-maxwell font-bold uppercase tracking-tighter mb-4 leading-none text-white">
+            <h3 className="text-4xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-white">
               The Pit Lane
             </h3>
             <p className={`text-sm font-mono leading-relaxed mb-8 flex-grow ${isExp1Disabled ? 'text-neutral-500' : 'text-neutral-400'}`}>
@@ -344,7 +554,7 @@ export const VisitorBooking: React.FC = () => {
               </span>
             </div>
 
-            <h3 className="text-5xl font-maxwell font-bold uppercase tracking-tighter mb-4 leading-none text-black">The Prophecy</h3>
+            <h3 className="text-4xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-black">The Prophecy</h3>
             <p className="text-sm font-mono leading-relaxed mb-8 flex-grow text-neutral-800">
               // OBSERVER MODE
               <br />
@@ -378,7 +588,7 @@ export const VisitorBooking: React.FC = () => {
 
         <div className="flex justify-between items-end mb-8 border-b-4 border-white pb-4">
           <div>
-            <h2 className="text-5xl md:text-7xl font-maxwell font-bold uppercase tracking-tighter text-yellow-400">Schedule</h2>
+            <h2 className="text-5xl md:text-7xl !font-revolution font-bold uppercase tracking-tighter text-yellow-400">Schedule</h2>
             <div className="flex items-center gap-2 mt-2">
               <Calendar className="w-4 h-4 text-red-600" />
               <span className="text-sm font-bold uppercase tracking-widest font-maxwell text-white">
@@ -387,8 +597,10 @@ export const VisitorBooking: React.FC = () => {
             </div>
           </div>
           <div className="hidden md:block text-right">
-            <div className="text-xs font-bold uppercase tracking-widest text-neutral-500">Time Zone</div>
-            <div className="font-mono font-bold text-white">MARANELLO (CET)</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-neutral-500">Event Time</div>
+            <div className="font-mono font-bold text-white uppercase">
+                {experiences.find(e => e.id === selectedExpId)?.timezone || 'UTC'}
+            </div>
           </div>
         </div>
 
@@ -425,7 +637,8 @@ export const VisitorBooking: React.FC = () => {
                       }
                     }}
                   >
-                    <div className="col-span-3 font-mono text-xl font-bold tracking-tighter">{format(slot.startTime, 'HH:mm')}</div>
+                    {/* Time displayed safely using string from DB */}
+                    <div className="col-span-3 font-mono text-xl font-bold tracking-tighter">{slot.formattedTime}</div>
 
                     <div className="col-span-6">
                       {isPassed ? (
@@ -475,7 +688,7 @@ export const VisitorBooking: React.FC = () => {
         </button>
 
         <div className="mb-8 border-b-4 border-white pb-4">
-          <h2 className="text-5xl md:text-6xl font-maxwell font-bold uppercase tracking-tighter text-yellow-400">Driver Details</h2>
+          <h2 className="text-5xl md:text-5xl !font-revolution font-bold uppercase tracking-tighter text-yellow-400">Driver Details</h2>
           <p className="font-mono text-xs mt-2 text-neutral-500">// MANDATORY TELEMETRY DATA</p>
         </div>
 
@@ -537,7 +750,7 @@ export const VisitorBooking: React.FC = () => {
 
           <div className="md:col-span-1">
             <div className="bg-white text-black p-6 sticky top-24 border-2 border-white">
-              <h4 className="font-maxwell font-bold uppercase text-2xl mb-4 border-b border-black/20 pb-4">Summary</h4>
+              <h4 className="font-maxwell font-revolution font-bold uppercase text-2xl mb-4 border-b border-black/20 pb-4">Summary</h4>
               <div className="space-y-4 font-mono text-sm">
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Date</span>
@@ -545,7 +758,7 @@ export const VisitorBooking: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Time</span>
-                  <span className="font-bold">{format(selectedSlot.startTime, 'HH:mm')}</span>
+                  <span className="font-bold">{selectedSlot.formattedTime}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Pax</span>
@@ -555,7 +768,7 @@ export const VisitorBooking: React.FC = () => {
               <button
                 disabled={!visitorName || !visitorEmail || attendees.some((a) => !a)}
                 onClick={() => setScene(6)}
-                className="w-full mt-8 bg-red-600 text-white py-4 font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-8 bg-red-600 text-white py-4 !font-revolution font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -570,7 +783,7 @@ export const VisitorBooking: React.FC = () => {
   if (scene === 6 && selectedSlot) {
     return (
       <div className="max-w-2xl mx-auto p-6 animate-in zoom-in-95 duration-500">
-        <h2 className="text-5xl font-maxwell font-bold uppercase tracking-tighter mb-8 text-center text-yellow-400">Safety Check</h2>
+        <h2 className="text-5xl !font-revolution font-bold uppercase tracking-tighter mb-8 text-center text-yellow-400">Safety Check</h2>
 
         <div className="bg-neutral-900 border-2 border-white p-8 relative overflow-hidden mb-8 shadow-[12px_12px_0px_0px_#fff]">
           <div className="space-y-6 relative z-10 text-white">
@@ -585,7 +798,7 @@ export const VisitorBooking: React.FC = () => {
             <div className="flex justify-between border-b-2 border-dashed border-neutral-700 pb-4">
               <span className="text-xs font-bold uppercase text-neutral-400 tracking-widest">Launch</span>
               <div className="text-right">
-                <div className="font-bold uppercase font-mono text-xl">{format(selectedSlot.startTime, 'HH:mm')}</div>
+                <div className="font-bold uppercase font-mono text-xl">{selectedSlot.formattedTime}</div>
               </div>
             </div>
           </div>
@@ -619,7 +832,7 @@ export const VisitorBooking: React.FC = () => {
           <button
             disabled={!agreedToTerms}
             onClick={handleValidationSubmit}
-            className="w-2/3 bg-red-600 text-white font-maxwell font-bold uppercase text-xl tracking-widest py-5 hover:bg-white hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[8px_8px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#fff] transition-all"
+            className="w-2/3 bg-red-600 text-white !font-revolution  font-bold uppercase text-lg tracking-widest py-5 hover:bg-white hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[8px_8px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#fff] transition-all"
           >
             Authorize Entry
           </button>
@@ -632,11 +845,12 @@ export const VisitorBooking: React.FC = () => {
   if (scene === 7 && confirmedBookings.length > 0) {
     const booking = confirmedBookings[0];
     const expName = experiences.find((e) => e.id === booking.experienceId)?.name || 'The Legend';
+    const tz = experiences.find((e) => e.id === booking.experienceId)?.timezone || 'UTC';
 
     return (
       <div className="min-h-[85vh] flex flex-col items-center justify-center p-6 text-center animate-in zoom-in duration-700">
         <div className="mb-10">
-          <h2 className="text-7xl md:text-9xl font-maxwell font-bold uppercase tracking-tighter leading-none mb-2 text-yellow-400">
+          <h2 className="text-7xl md:text-9xl !font-revolution  font-bold uppercase tracking-tighter leading-none mb-2 text-yellow-400">
             Access
             <br />
             Granted
@@ -653,7 +867,7 @@ export const VisitorBooking: React.FC = () => {
             </div>
 
             <div className="font-mono text-3xl font-bold tracking-widest mb-1">{booking.referenceCode}</div>
-            <div className="text-[10px] uppercase text-neutral-500 mb-8">Paddock Pass Identifier</div>
+            <div className="text-[10px] uppercase text-neutral-500 mb-8">Experience Pass Identifier</div>
 
             <div className="text-sm font-bold uppercase border-t-2 border-black pt-4 flex justify-between">
               <span>{format(new Date(booking.date), 'dd.MM.yy')}</span>
@@ -664,7 +878,7 @@ export const VisitorBooking: React.FC = () => {
 
         <div className="flex flex-col gap-4 mt-8 w-full max-w-sm">
           <button
-            onClick={() => generateQRImage(booking, expName)}
+            onClick={() => generateQRImage(booking, expName, tz)}
             className="bg-neutral-900 border-2 border-white text-white font-bold uppercase py-4 hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
           >
             <QrCode className="w-5 h-5" /> Save QR Code (Image)

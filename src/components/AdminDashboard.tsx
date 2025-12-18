@@ -19,6 +19,8 @@ export const AdminDashboard: React.FC = () => {
 
   const selectedExp = useMemo(() => experiences.find((e) => e.id === selectedExpId) ?? null, [experiences, selectedExpId]);
 
+
+
   useEffect(() => {
     void refreshData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,6 +85,7 @@ const loadSlotsForSelected = async () => {
       id: '', // Leave empty to create new UUID
       name: 'The Pit Lane',
       description: 'Interactive Multiplayer',
+      timezone: 'Europe/Rome',
       maxCapacity: 4,
       durationMinutes: 45,
       offsetMinutes: 15,
@@ -97,6 +100,7 @@ const loadSlotsForSelected = async () => {
       id: '', // Leave empty to create new UUID
       name: 'The Prophecy',
       description: 'Cinematic VR',
+      timezone: 'Europe/Rome',
       maxCapacity: 12,
       durationMinutes: 15,
       offsetMinutes: 10,
@@ -125,6 +129,7 @@ const loadSlotsForSelected = async () => {
       id: globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 11),
       name: 'New Experience',
       description: 'Description',
+      timezone: 'UTC',
       maxCapacity: 5,
       durationMinutes: 30,
       offsetMinutes: 15,
@@ -338,6 +343,18 @@ const save = async () => {
     setData({ ...data, timeIntervals: intervals });
   };
 
+    // List of common timezones
+const COMMON_TIMEZONES = [
+  'Europe/Rome',
+  'Europe/Athens',
+  'Europe/London',
+  'Europe/Paris',
+  'America/New_York',
+  'Asia/Tokyo',
+  'Asia/Dubai',
+  'UTC'
+];
+
   return (
     <div
       className={`bg-neutral-900 border-2 border-white transition-all duration-300 ${
@@ -420,6 +437,18 @@ const save = async () => {
                   value={data.endDate}
                   onChange={(e) => setData({ ...data, endDate: e.target.value })}
                 />
+              </div>
+                            <div>
+                <label className="text-[10px] font-bold uppercase text-neutral-400">Time Zone</label>
+                <select
+                  className="w-full bg-black border border-neutral-700 p-1 font-mono text-white text-sm"
+                  value={data.timezone}
+                  onChange={(e) => setData({ ...data, timezone: e.target.value })}
+                >
+                  {COMMON_TIMEZONES.map((tz) => (
+                    <option key={tz} value={tz}>{tz}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
