@@ -1,76 +1,149 @@
 'use client';
 
+import { supabase } from '../lib/supabase';
 import { Experience, Booking, DaySchedule } from '../types';
 
-const KEYS = {
-  EXPERIENCES: 'exhibit_experiences_v2',
-  BOOKINGS: 'exhibit_bookings_v2',
-  SCHEDULES: 'exhibit_schedules_v2',
-};
-
 export const storageService = {
-  getExperiences: (): Experience[] => {
-    if (typeof window === 'undefined') return [];
-    const data = localStorage.getItem(KEYS.EXPERIENCES);
-    return data ? JSON.parse(data) : [];
-  },
+  // --- EXPERIENCES (Admin) ---
+  getExperiences: async (): Promise<Experience[]> => {
+    // 1. Fetch Experiences
+    const { data: exps, error } = await supabase
+      .from('experiences')
+      .select('*')
+      .order('created_at');
 
-  updateExperience: (exp: Experience) => {
-    if (typeof window === 'undefined') return;
-    const exps = storageService.getExperiences();
-    const idx = exps.findIndex((e) => e.id === exp.id);
-    if (idx >= 0) {
-      exps[idx] = exp;
-    } else {
-      exps.push(exp);
+    if (error || !exps) {
+        console.error("Error loading experiences", error);
+        return [];
     }
-    localStorage.setItem(KEYS.EXPERIENCES, JSON.stringify(exps));
+
+    // 2. Fetch Schedules (Joined manually to match UI shape)
+    const { data: scheds } = await supabase.from('experience_schedules').select('*');
+
+    return exps.map((e: any) => {
+      const myScheds = (scheds || [])
+        .filter((s: any) => s.experience_id === e.id)
+        .map((s: any) => ({
+          startTime: String(s.start_time).slice(0, 5),
+          endTime: String(s.end_time).slice(0, 5),
+        }));
+
+      return {
+        id: e.id,
+        name: e.title,
+        description: e.description || '',
+        maxCapacity: e.max_people,
+        durationMinutes: e.duration_minutes,
+        offsetMinutes: e.setup_minutes,
+        color: e.timezone === 'UTC' ? 'bg-blue-600' : 'bg-emerald-600',
+        isActive: true, 
+        startDate: e.valid_from,
+        endDate: e.valid_until,
+        timeIntervals: myScheds,
+      };
+    });
   },
 
-  deleteExperience: (id: string) => {
-    if (typeof window === 'undefined') return;
-    const exps = storageService.getExperiences().filter(e => e.id !== id);
-    localStorage.setItem(KEYS.EXPERIENCES, JSON.stringify(exps));
-  },
+  updateExperience: async (exp: Experience) => {
+    // 1. Upsert Experience
+    // If ID is not a valid UUID (e.g. "new"), undefined lets DB generate one
+    const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    const idToUse = isUUID(exp.id) ? exp.id : undefined;
 
-  getBookings: (): Booking[] => {
-    if (typeof window === 'undefined') return [];
-    const data = localStorage.getItem(KEYS.BOOKINGS);
-    return data ? JSON.parse(data) : [];
-  },
+    const { data: savedExp, error: expError } = await supabase
+      .from('experiences')
+      .upsert({
+        id: idToUse,
+        title: exp.name,
+        description: exp.description,
+        max_people: exp.maxCapacity,
+        duration_minutes: exp.durationMinutes,
+        setup_minutes: exp.offsetMinutes,
+        valid_from: exp.startDate,
+        valid_until: exp.endDate,
+        timezone: 'CET',
+      })
+      .select()
+      .single();
 
-  addBooking: (booking: Booking) => {
-    if (typeof window === 'undefined') return;
-    const bookings = storageService.getBookings();
-    bookings.push(booking);
-    localStorage.setItem(KEYS.BOOKINGS, JSON.stringify(bookings));
-  },
+    if (expError) throw new Error(expError.message);
 
-  updateBooking: (booking: Booking) => {
-    if (typeof window === 'undefined') return;
-    const bookings = storageService.getBookings();
-    const idx = bookings.findIndex(b => b.id === booking.id);
-    if (idx !== -1) {
-      bookings[idx] = booking;
-      localStorage.setItem(KEYS.BOOKINGS, JSON.stringify(bookings));
+    if (savedExp) {
+      // 2. Replace Schedules
+      await supabase.from('experience_schedules').delete().eq('experience_id', savedExp.id);
+      
+      const schedPayload = exp.timeIntervals.map((t) => ({
+        experience_id: savedExp.id,
+        start_time: t.startTime,
+        end_time: t.endTime,
+      }));
+
+      if (schedPayload.length > 0) {
+        await supabase.from('experience_schedules').insert(schedPayload);
+      }
+
+      // 3. TRIGGER GENERATOR RPC
+      // This fills the 'slots' table based on the new schedule
+      await supabase.rpc('generate_slots_for_experience', { target_experience_id: savedExp.id });
     }
   },
 
-  getSchedules: (): DaySchedule[] => {
-    if (typeof window === 'undefined') return [];
-    const data = localStorage.getItem(KEYS.SCHEDULES);
-    return data ? JSON.parse(data) : [];
+  deleteExperience: async (id: string) => {
+    await supabase.from('experiences').delete().eq('id', id);
   },
 
-  saveSchedule: (schedule: DaySchedule) => {
-    if (typeof window === 'undefined') return;
-    const schedules = storageService.getSchedules();
-    const idx = schedules.findIndex(s => s.date === schedule.date);
-    if (idx >= 0) {
-      schedules[idx] = schedule;
-    } else {
-      schedules.push(schedule);
-    }
-    localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
-  }
+  // --- BOOKINGS (Admin/Staff) ---
+  getBookings: async (): Promise<Booking[]> => {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        booking_guests ( id, full_name, check_in_status, created_at ),
+        slots ( experience_id )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+
+    return data.map((b: any) => {
+        // Sort guests by creation time to ensure consistent indexing for Staff Check-in
+        const sortedGuests = (b.booking_guests || []).sort((x: any, y: any) => 
+            new Date(x.created_at).getTime() - new Date(y.created_at).getTime()
+        );
+        
+        return {
+            id: b.id,
+            slotId: b.slot_id,
+            experienceId: b.slots?.experience_id || '',
+            date: b.target_date,
+            time: String(b.target_time).slice(0, 5),
+            pax: b.party_size,
+            originalPax: b.party_size,
+            visitorName: b.customer_name,
+            visitorEmail: b.customer_email,
+            attendeeNames: sortedGuests.map((g: any) => g.full_name),
+            guestIds: sortedGuests.map((g: any) => g.id), // Crucial for Check-in
+            referenceCode: b.booking_reference,
+            checkedIn: sortedGuests.some((g: any) => g.check_in_status === 'ARRIVED'),
+            status: b.status,
+        };
+    });
+  },
+
+  // --- STAFF ACTIONS ---
+  processCheckIn: async (bookingId: string, arrivedGuestIds: string[]) => {
+    const { data, error } = await supabase.rpc('staff_process_checkin', {
+        p_booking_id: bookingId,
+        p_arrived_guest_ids: arrivedGuestIds
+    });
+
+    if (error) throw new Error(error.message);
+    return data; // { success: true, new_party_size: N }
+  },
+
+  // Legacy Stub
+  updateBooking: async () => {},
+  getBookingsForExperienceDate: async () => [],
+  getSchedules: async () => [],
+  saveSchedule: async () => {},
 };

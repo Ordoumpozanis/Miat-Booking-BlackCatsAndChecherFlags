@@ -1,4 +1,3 @@
-
 export enum UserRole {
   VISITOR = 'VISITOR',
   ADMIN = 'ADMIN',
@@ -11,43 +10,43 @@ export interface TimeInterval {
 }
 
 export interface Experience {
-  id: string;
-  name: string;
+  id: string; // UUID
+  name: string;             // DB: title
   description: string;
-  maxCapacity: number;
-  durationMinutes: number; // Duration of the experience
-  offsetMinutes: number;   // How often a new slot starts
-  color: string;
-  isActive: boolean; // Toggle availability without deleting
-  startDate: string; // YYYY-MM-DD
-  endDate: string;   // YYYY-MM-DD
-  timeIntervals: TimeInterval[]; // Multiple daily operating windows
+  maxCapacity: number;      // DB: max_people
+  durationMinutes: number;  // DB: duration_minutes
+  offsetMinutes: number;    // DB: setup_minutes
+  color: string;            // UI Only
+  isActive: boolean;        // Inferred
+  startDate: string;        // DB: valid_from
+  endDate: string;          // DB: valid_until
+  timeIntervals: TimeInterval[]; // DB: experience_schedules
 }
 
 export interface DaySchedule {
-  date: string; // YYYY-MM-DD
-  startTime: string; // HH:mm - Global fallback/constraint
-  endTime: string; // HH:mm - Global fallback/constraint
+  date: string;
   isOpen: boolean;
 }
 
 export interface Booking {
   id: string;
-  slotId: string; // Generated ID based on time
+  slotId: string;
   experienceId: string;
   date: string;
-  time: string; // HH:mm
+  time: string;
   pax: number;
-  originalPax?: number; // Keeps track if party size was reduced at door
+  originalPax: number;
   visitorName: string;
   visitorEmail: string;
   attendeeNames: string[];
-  referenceCode: string; // Short code for QR
+  referenceCode: string;
   checkedIn: boolean;
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+  guestIds?: string[]; // Added for Staff Check-in Logic
 }
 
 export interface Slot {
-  id: string;
+  id: string; // UUID
   experienceId: string;
   startTime: Date;
   endTime: Date;
@@ -55,6 +54,7 @@ export interface Slot {
   currentBookings: number;
   remainingCapacity: number;
   status: 'OPEN' | 'PARTIAL' | 'FULL' | 'PASSED';
+  isBlocked: boolean; // Added for Admin
 }
 
 export interface SlotOption {

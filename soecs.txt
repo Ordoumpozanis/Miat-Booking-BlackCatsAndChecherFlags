@@ -1,0 +1,32 @@
+ok question before procees to validate the shema can handle
+
+1. admin can create any number of experiences. each experience have a loacation, start ad end date, can have all days or some dayn in ths caledar. on each days can have the same booking hours or differend booking hours, can have continues booking hours ot the admin can disable some slots
+2. admin can enebla disable an experience in order to be accesible for boking or not 
+3. admin can perfomr any CRUD operation on an experiecne
+4. admin can see statistics of how this experience went , bookings per day, trafic hours with most demant, calsalations, avrage number of booing per experience
+5. admin can allow booking only for the same day of for a set of dates for visitos
+
+Visitor:
+-can set number of persons wants to book
+-see available slots based on :
+--Experience is avalable
+-- Slot is available
+-- number of people can fit ont he slot [is importat here to note that a slot can have people for many different bookngs. e.g. a slot of 4 places max can  booked either as one bookinfo for 4 or for example as a booking on 1 + a boking for 1 + a boking for 2 
+-- a visitor adds the names of persons for each booking and an email
+-- a visitors gets back a qr code genrated by the system based ona booking reference umer that is stored in the db
+-- a visitor can cansel or edit the booking only before booking time starts
+-- the visitor have only acces on his booking
+- the visitor on the same emailcan book only once timeslot and only if this slot period ends to book again for the same email  mail the same emxperience
+- the visitor can book differen expereices on **differen slots on same day** for same email and persons name
+-the visitor can book only for the same day if the admin have activate this 
+
+-- 
+#staf
+the staff can do whatever the visistors do but have the CRUD writes for any booking  so they can help the vistiors if needd
+the staff  saq a qr code of put the booking reference number and see if now is this person tern as booked on if now when is it [ow was if mished] 
+the staff after scans the qr code see all the names that are on this ticket.  have an otopin to select the ones that indeed want on the door.  so after booking we hava a ral time updatin state with slots never apper to imidiately reopen if for that slot periof id some name did not attent
+
+
+theses are the main think as i thinkt that this booking shoudl have. 
+ a. validate this shema is ok 
+if not Remake it from scrch with the clear erd and the shema

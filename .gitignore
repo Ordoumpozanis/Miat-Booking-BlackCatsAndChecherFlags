@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#secure
+.db 
+Sentd-php-to-Gpt.js
+all_code.txt
+Correction Notes.txt
+db.node_modules
+soecs.txt

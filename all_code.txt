@@ -1,0 +1,2461 @@
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\layout.tsx ===
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import localFont from "next/font/local";
+import "./globals.css";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const maxwell = localFont({
+  src: [
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-UltraLight.otf', weight: '100', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-UltraLightItalic.otf', weight: '100', style: 'italic' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-Light.otf', weight: '300', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-LightItalic.otf', weight: '300', style: 'italic' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-Book.otf', weight: '400', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-BookItalic.otf', weight: '400', style: 'italic' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-DemiBold.otf', weight: '600', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-DemiBoldItalic.otf', weight: '600', style: 'italic' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-Bold.otf', weight: '700', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-BoldItalic.otf', weight: '700', style: 'italic' },
+  ],
+  variable: '--font-maxwell',
+  display: 'swap',
+});
+
+const revolution = localFont({
+  src: '../../public/revolution_ii.ttf',
+  variable: '--font-revolution',
+  display: 'swap',
+});
+
+export const metadata: Metadata = {
+  title: "ExhibitFlow",
+  description: "Black Cats & Chequered Flags - Booking System",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} ${maxwell.variable} ${revolution.variable} antialiased selection:bg-yellow-400 selection:text-black`}
+      >
+        {children}
+      </body>
+    </html>
+  );
+}
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\page.tsx ===
+import App from '../components/App';
+
+export default function Home() {
+  return <App />;
+}
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\AdminDashboard.tsx ===
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import { Trash2 } from 'lucide-react';
+import { Experience, TimeInterval } from '../types';
+import { storageService } from '../services/storageService';
+import { bookingService } from '../services/bookingService';
+import { format } from 'date-fns';
+
+export const AdminDashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'schedule' | 'experiences'>('experiences');
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedExpId, setSelectedExpId] = useState<string>('');
+
+  const [slots, setSlots] = useState<any[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState<string>('');
+
+  const selectedExp = useMemo(() => experiences.find((e) => e.id === selectedExpId) ?? null, [experiences, selectedExpId]);
+
+  useEffect(() => {
+    void refreshData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refreshData = async () => {
+    const exps = await Promise.resolve(storageService.getExperiences());
+    setExperiences(exps);
+
+    setSelectedExpId((prev) => {
+      if (prev) {
+        const stillExists = exps.some((e) => e.id === prev);
+        if (stillExists) return prev;
+      }
+      return exps[0]?.id ?? '';
+    });
+  };
+
+const loadSlotsForSelected = async () => {
+  if (activeTab !== 'schedule') return;
+
+  if (!selectedExpId) {
+    setSlots([]);
+    return;
+  }
+
+  setLoadingSlots(true);
+  setSlotsError('');
+
+  try {
+    // IMPORTANT: fetch the latest experience from DB so slot times reflect edits
+    const freshExps = await storageService.getExperiences();
+    const freshExp = freshExps.find((e) => e.id === selectedExpId);
+
+    if (!freshExp) {
+      setSlots([]);
+      return;
+    }
+
+    const result = await bookingService.generateSlotsForDateAsync(freshExp, selectedDate);
+    setSlots(result as any[]);
+  } catch (e: any) {
+    setSlots([]);
+    setSlotsError(e?.message ?? 'Failed to load slots');
+  } finally {
+    setLoadingSlots(false);
+  }
+};
+
+
+  useEffect(() => {
+    void loadSlotsForSelected();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, selectedExpId, selectedDate]);
+
+ // Find handleInitDefaults and replace with:
+  const handleInitDefaults = async () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const nextYear = format(new Date(new Date().setFullYear(new Date().getFullYear() + 1)), 'yyyy-MM-dd');
+
+    const ex1: Experience = {
+      id: '', // Leave empty to create new UUID
+      name: 'The Pit Lane',
+      description: 'Interactive Multiplayer',
+      maxCapacity: 4,
+      durationMinutes: 45,
+      offsetMinutes: 15,
+      color: 'bg-blue-600',
+      isActive: true,
+      startDate: today,
+      endDate: nextYear,
+      timeIntervals: [{ startTime: '09:00', endTime: '18:00' }],
+    };
+
+    const ex2: Experience = {
+      id: '', // Leave empty to create new UUID
+      name: 'The Prophecy',
+      description: 'Cinematic VR',
+      maxCapacity: 12,
+      durationMinutes: 15,
+      offsetMinutes: 10,
+      color: 'bg-emerald-600',
+      isActive: true,
+      startDate: today,
+      endDate: nextYear,
+      timeIntervals: [{ startTime: '10:00', endTime: '20:00' }],
+    };
+
+    try {
+        await storageService.updateExperience(ex1);
+        await storageService.updateExperience(ex2);
+        await refreshData();
+        alert("Defaults loaded!");
+    } catch(e: any) {
+        alert("Error: " + e.message);
+    }
+  };
+
+  const handleAddExperience = async () => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const nextYear = format(new Date(new Date().setFullYear(new Date().getFullYear() + 1)), 'yyyy-MM-dd');
+
+    const newExp: Experience = {
+      id: globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 11),
+      name: 'New Experience',
+      description: 'Description',
+      maxCapacity: 5,
+      durationMinutes: 30,
+      offsetMinutes: 15,
+      color: 'bg-black',
+      isActive: true,
+      startDate: today,
+      endDate: nextYear,
+      timeIntervals: [{ startTime: '09:00', endTime: '17:00' }],
+    };
+
+    await Promise.resolve(storageService.updateExperience(newExp));
+    await refreshData();
+  };
+
+  const handleDeleteExperience = async (id: string) => {
+    if (!confirm('Delete this experience?')) return;
+    await Promise.resolve(storageService.deleteExperience(id));
+    await refreshData();
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto p-4 md:p-8 font-sans bg-black text-white min-h-screen">
+      <div className="flex flex-col md:flex-row justify-between items-end mb-8 border-b-4 border-white pb-4">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-maxwell font-bold uppercase tracking-tighter mb-2 text-yellow-400">
+            Control Tower
+          </h1>
+        </div>
+        <div className="flex gap-2 mt-4 md:mt-0">
+          <button
+            onClick={() => setActiveTab('experiences')}
+            className={`px-6 py-2 text-sm font-bold uppercase tracking-widest border-2 border-white transition-all ${
+              activeTab === 'experiences' ? 'bg-white text-black' : 'bg-black text-white hover:bg-neutral-800'
+            }`}
+          >
+            Experiences
+          </button>
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`px-6 py-2 text-sm font-bold uppercase tracking-widest border-2 border-white transition-all ${
+              activeTab === 'schedule' ? 'bg-white text-black' : 'bg-black text-white hover:bg-neutral-800'
+            }`}
+          >
+            Calendar
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'experiences' && (
+        <div className="space-y-6">
+          {experiences.length === 0 ? (
+            <div className="p-12 border-2 border-dashed border-neutral-700 text-center">
+              <button
+                onClick={() => void handleInitDefaults()}
+                className="bg-red-600 text-white px-8 py-3 font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
+              >
+                Load Defaults
+              </button>
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {experiences.map((exp) => (
+                <ExperienceCard
+                  key={exp.id}
+                  experience={exp}
+                  onDelete={() => void handleDeleteExperience(exp.id)}
+                  onUpdate={() => void refreshData()}
+                />
+              ))}
+              <button
+                onClick={() => void handleAddExperience()}
+                className="w-full py-4 border-2 border-dashed border-neutral-700 text-neutral-500 font-bold uppercase tracking-widest hover:border-white hover:text-white transition-colors"
+              >
+                + Create New Experience
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'schedule' && (
+        <div className="bg-neutral-900 border-2 border-white shadow-[8px_8px_0px_0px_#333]">
+          <div className="p-4 border-b-2 border-white bg-black flex flex-col md:flex-row gap-4 justify-between items-center">
+            <div className="flex flex-wrap gap-2">
+              {experiences.map((exp) => (
+                <button
+                  key={exp.id}
+                  onClick={() => setSelectedExpId(exp.id)}
+                  className={`px-4 py-1 text-xs font-bold uppercase tracking-widest border-2 transition-all ${
+                    selectedExpId === exp.id
+                      ? 'bg-yellow-400 text-black border-yellow-400'
+                      : 'bg-black text-white border-white hover:bg-neutral-800'
+                  }`}
+                >
+                  {exp.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-black text-white border-2 border-white px-3 py-1 font-mono text-sm uppercase outline-none"
+              />
+              <button
+                onClick={() => void loadSlotsForSelected()}
+                className="px-4 py-2 border-2 border-white bg-white text-black text-xs font-bold uppercase tracking-widest hover:bg-yellow-400"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            {!selectedExp ? (
+              <div className="p-12 text-center text-neutral-500 font-mono uppercase">Select an experience</div>
+            ) : loadingSlots ? (
+              <div className="p-12 text-center text-neutral-500 font-mono uppercase">Loading…</div>
+            ) : slotsError ? (
+              <div className="p-12 text-center text-red-400 font-mono uppercase">{slotsError}</div>
+            ) : slots.length === 0 ? (
+              <div className="p-12 text-center text-neutral-500 font-mono uppercase">No slots available</div>
+            ) : (
+              <table className="w-full text-left border-collapse text-white">
+                <thead className="bg-white text-black text-[10px] font-bold uppercase tracking-widest">
+                  <tr>
+                    <th className="p-3">Time</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-center">Load</th>
+                    <th className="p-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-800">
+                  {slots.map((slot: any) => (
+                    <tr key={slot.id} className="hover:bg-neutral-800 font-mono text-sm">
+                      <td className="p-3 font-bold">
+                        {(slot.startTime as Date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="p-3 uppercase text-xs">{slot.status}</td>
+                      <td className="p-3 text-center">
+                        {slot.currentBookings}/{slot.maxCapacity}
+                      </td>
+                      <td className="p-3">
+                        <div className="w-full bg-neutral-800 h-2">
+                          <div
+                            className={`h-full ${slot.status === 'FULL' ? 'bg-red-600' : 'bg-yellow-400'}`}
+                            style={{ width: `${(slot.currentBookings / slot.maxCapacity) * 100}%` }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ExperienceCard: React.FC<{ experience: Experience; onDelete: () => void; onUpdate: () => void }> = ({
+  experience,
+  onDelete,
+  onUpdate,
+}) => {
+  const [data, setData] = useState<Experience>(experience);
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    setData(experience);
+  }, [experience]);
+
+const save = async () => {
+  try {
+    await storageService.updateExperience(data);
+    setIsEditing(false);
+    onUpdate();
+  } catch (e: any) {
+    alert(e?.message ?? 'Failed to save experience');
+  }
+};
+
+
+  const toggleActive = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newData = { ...data, isActive: !data.isActive };
+    setData(newData);
+    await Promise.resolve(storageService.updateExperience(newData));
+    onUpdate();
+  };
+
+  const addInterval = () => {
+    const intervals = data.timeIntervals ? [...data.timeIntervals] : [];
+    intervals.push({ startTime: '09:00', endTime: '12:00' });
+    setData({ ...data, timeIntervals: intervals });
+  };
+
+  const removeInterval = (index: number) => {
+    const intervals = [...(data.timeIntervals || [])];
+    intervals.splice(index, 1);
+    setData({ ...data, timeIntervals: intervals });
+  };
+
+  const updateInterval = (index: number, field: keyof TimeInterval, value: string) => {
+    const intervals = [...(data.timeIntervals || [])];
+    intervals[index] = { ...intervals[index], [field]: value };
+    setData({ ...data, timeIntervals: intervals });
+  };
+
+  return (
+    <div
+      className={`bg-neutral-900 border-2 border-white transition-all duration-300 ${
+        data.isActive ? 'shadow-[4px_4px_0px_0px_#fff]' : 'opacity-60 border-dashed'
+      }`}
+    >
+      <div className="p-4 flex items-center justify-between bg-black border-b-2 border-white">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={(e) => void toggleActive(e)}
+            className={`w-4 h-4 border border-white ${data.isActive ? 'bg-yellow-400' : 'bg-black'}`}
+          />
+          <span className="font-maxwell font-bold uppercase tracking-wide text-white">{data.name}</span>
+        </div>
+        <button
+          onClick={() => setIsEditing(!isEditing)}
+          className="text-xs font-bold uppercase underline hover:text-red-600 text-neutral-400"
+        >
+          {isEditing ? 'Cancel' : 'Edit'}
+        </button>
+      </div>
+
+      <div className="p-4 text-white">
+        {isEditing ? (
+          <div className="space-y-4 animate-in fade-in">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-neutral-400">Name</label>
+              <input
+                className="w-full border-b border-white font-mono font-bold uppercase py-1 bg-transparent outline-none text-white"
+                value={data.name}
+                onChange={(e) => setData({ ...data, name: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-neutral-400">Duration (m)</label>
+                <input
+                  type="number"
+                  className="w-full bg-black border border-neutral-700 p-1 font-mono text-white"
+                  value={data.durationMinutes}
+                  onChange={(e) => setData({ ...data, durationMinutes: Number(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-neutral-400">Gap/Offset (m)</label>
+                <input
+                  type="number"
+                  className="w-full bg-black border border-neutral-700 p-1 font-mono text-white"
+                  value={data.offsetMinutes}
+                  onChange={(e) => setData({ ...data, offsetMinutes: Number(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-neutral-400">Capacity</label>
+                <input
+                  type="number"
+                  className="w-full bg-black border border-neutral-700 p-1 font-mono text-white"
+                  value={data.maxCapacity}
+                  onChange={(e) => setData({ ...data, maxCapacity: Number(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-neutral-400">Start Date</label>
+                <input
+                  type="date"
+                  className="w-full bg-black border border-neutral-700 p-1 font-mono text-white"
+                  value={data.startDate}
+                  onChange={(e) => setData({ ...data, startDate: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-neutral-400">End Date</label>
+                <input
+                  type="date"
+                  className="w-full bg-black border border-neutral-700 p-1 font-mono text-white"
+                  value={data.endDate}
+                  onChange={(e) => setData({ ...data, endDate: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="border border-neutral-700 p-2">
+              <div className="flex justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase text-neutral-400">Schedule Blocks</span>
+                <button onClick={addInterval} className="text-[10px] bg-white text-black px-2 hover:bg-yellow-400">
+                  +
+                </button>
+              </div>
+
+              {data.timeIntervals?.map((t, i) => (
+                <div key={i} className="flex gap-2 mb-1 items-center">
+                  <input
+                    type="time"
+                    value={t.startTime}
+                    onChange={(e) => updateInterval(i, 'startTime', e.target.value)}
+                    className="border border-neutral-600 bg-black p-1 text-xs text-white"
+                  />
+                  <span className="text-neutral-400">-</span>
+                  <input
+                    type="time"
+                    value={t.endTime}
+                    onChange={(e) => updateInterval(i, 'endTime', e.target.value)}
+                    className="border border-neutral-600 bg-black p-1 text-xs text-white"
+                  />
+                  <button onClick={() => removeInterval(i)} className="text-red-500 px-2">
+                    x
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => void save()}
+                className="flex-1 bg-white text-black py-2 font-bold uppercase tracking-widest hover:bg-yellow-400"
+              >
+                Save
+              </button>
+              <button onClick={onDelete} className="p-2 border border-white hover:bg-red-600 hover:text-white">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-between items-center text-sm font-mono">
+            <span className="uppercase text-neutral-400">
+              {data.durationMinutes} MIN (+{data.offsetMinutes} GAP) / MAX {data.maxCapacity} PAX
+            </span>
+            <div className="flex gap-1">
+              {data.timeIntervals?.map((t, i) => (
+                <span key={i} className="bg-neutral-800 border border-neutral-700 px-1 text-xs text-neutral-300">
+                  {t.startTime}-{t.endTime}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\App.tsx ===
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { Layout } from './Layout';
+import { VisitorBooking } from './VisitorBooking';
+import { AdminDashboard } from './AdminDashboard';
+import { StaffDashboard } from './StaffDashboard';
+import { LoginScreen } from './LoginScreen';
+
+type Role = 'VISITOR' | 'ADMIN' | 'STAFF';
+
+type StoredAuth = {
+  isAuthenticated: boolean;
+  role: Role;
+  userId?: string;
+  email?: string;
+};
+
+const STORAGE_KEY = 'ef_auth_v1';
+
+const App: React.FC = () => {
+  const [view, setView] = useState('home');
+  const [auth, setAuth] = useState<StoredAuth>({
+    isAuthenticated: false,
+    role: 'VISITOR',
+  });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as StoredAuth;
+      if (parsed?.isAuthenticated && (parsed.role === 'ADMIN' || parsed.role === 'STAFF')) {
+        setAuth(parsed);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleLogin = (role: 'ADMIN' | 'STAFF', user: { userId: string; email: string }) => {
+    const next: StoredAuth = { isAuthenticated: true, role, userId: user.userId, email: user.email };
+    setAuth(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const handleLogout = () => {
+    setAuth({ isAuthenticated: false, role: 'VISITOR' });
+    localStorage.removeItem(STORAGE_KEY);
+    setView('home');
+  };
+
+  const renderView = () => {
+    switch (view) {
+      case 'home':
+        return <VisitorBooking />;
+
+      case 'admin':
+        if (auth.isAuthenticated && auth.role === 'ADMIN') return <AdminDashboard />;
+        return <LoginScreen targetView="admin" onLogin={handleLogin} onCancel={() => setView('home')} />;
+
+      case 'staff':
+        if (auth.isAuthenticated && (auth.role === 'STAFF' || auth.role === 'ADMIN')) return <StaffDashboard />;
+        return <LoginScreen targetView="staff" onLogin={handleLogin} onCancel={() => setView('home')} />;
+
+      default:
+        return <VisitorBooking />;
+    }
+  };
+
+  return (
+    <Layout setView={setView} currentView={view} auth={auth} onLogout={handleLogout}>
+      {renderView()}
+    </Layout>
+  );
+};
+
+export default App;
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\BrandLogo.tsx ===
+'use client';
+
+import React from 'react';
+
+export const BrandLogo: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 500 150" className={className} xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="checkers" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+        <rect x="0" y="0" width="10" height="10" fill="white" fillOpacity="0.2"/>
+        <rect x="10" y="10" width="10" height="10" fill="white" fillOpacity="0.2"/>
+      </pattern>
+    </defs>
+    
+    {/* Stylized Text */}
+    <text x="250" y="60" textAnchor="middle" fontFamily="Oswald, sans-serif" fontWeight="700" fontSize="60" fill="white" letterSpacing="0.05em">
+      BLACK CATS
+    </text>
+    
+    <text x="250" y="100" textAnchor="middle" fontFamily="Oswald, sans-serif" fontWeight="400" fontSize="24" fill="#FACC15" letterSpacing="0.2em">
+      & CHEQUERED FLAGS
+    </text>
+
+    {/* Decorative Flags (Stylized) */}
+    <path d="M40 50 Q 60 20 100 50 T 160 50" stroke="#FACC15" strokeWidth="2" fill="none" opacity="0.5" />
+    <path d="M340 50 Q 360 80 400 50 T 460 50" stroke="#FACC15" strokeWidth="2" fill="none" opacity="0.5" />
+  </svg>
+);
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\Layout.tsx ===
+'use client';
+
+import React from 'react';
+import { Ticket, LayoutDashboard, ScanLine, LogOut } from 'lucide-react';
+import Image from 'next/image';
+
+interface LayoutProps {
+  children: React.ReactNode;
+  setView: (view: string) => void;
+  currentView: string;
+  auth: { isAuthenticated: boolean; role: string };
+  onLogout: () => void;
+}
+
+export const Layout: React.FC<LayoutProps> = ({ children, setView, currentView, auth, onLogout }) => {
+  const navItemClass = (view: string) => `
+    flex flex-col items-center justify-center p-4 cursor-pointer transition-all duration-300 border-t-4
+    ${currentView === view ? 'border-yellow-400 text-yellow-400 bg-neutral-900' : 'border-transparent text-neutral-500 hover:text-white hover:bg-white/5'}
+  `;
+
+  return (
+    <div className="min-h-screen flex flex-col font-sans bg-black text-white">
+      {/* Minimalist Header */}
+      <header className="bg-black border-b-2 border-white/20 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-6 py-5 flex justify-between items-center">
+          <div className="flex items-center cursor-pointer group" onClick={() => setView('home')}>
+            <Image 
+              src="/Logo MIAT_NEG.png" 
+              alt="Black Cats & Chequered Flags Experience"
+              width={300}
+              height={80}
+              className="h-14 w-auto md:h-12 lg:h-14 object-contain transition-transform group-hover:scale-105"
+              priority
+            />
+          </div>
+          
+          <div className="flex items-center gap-8">
+              {/* Desktop Nav */}
+              <nav className="hidden md:flex items-center gap-6 text-sm font-bold tracking-widest uppercase font-maxwell">
+                <button onClick={() => setView('home')} className={`transition hover:text-yellow-400 ${currentView === 'home' ? 'text-white border-b-2 border-white' : 'text-neutral-500'}`}>Visitor</button>
+                <button onClick={() => setView('admin')} className={`transition hover:text-yellow-400 ${currentView === 'admin' ? 'text-white border-b-2 border-white' : 'text-neutral-500'}`}>Admin</button>
+                <button onClick={() => setView('staff')} className={`transition hover:text-yellow-400 ${currentView === 'staff' ? 'text-white border-b-2 border-white' : 'text-neutral-500'}`}>Staff</button>
+              </nav>
+
+              {/* Logout Button */}
+              {auth.isAuthenticated && (
+                  <button onClick={onLogout} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-black bg-white hover:bg-red-600 hover:text-white px-4 py-2 transition rounded-none">
+                      <LogOut className="w-3 h-3" /> Logout
+                  </button>
+              )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area - Added pb-24 for mobile padding */}
+      <main className="flex-grow pb-24 md:pb-0">
+        {children}
+      </main>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-black border-t-2 border-white/20 grid grid-cols-3 pb-safe z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+        <div onClick={() => setView('home')} className={navItemClass('home')}>
+          <Ticket className="w-5 h-5 mb-1" />
+          <span className="text-[10px] font-bold tracking-widest uppercase font-maxwell">Visit</span>
+        </div>
+        <div onClick={() => setView('admin')} className={navItemClass('admin')}>
+          <LayoutDashboard className="w-5 h-5 mb-1" />
+          <span className="text-[10px] font-bold tracking-widest uppercase font-maxwell">Admin</span>
+        </div>
+        <div onClick={() => setView('staff')} className={navItemClass('staff')}>
+          <ScanLine className="w-5 h-5 mb-1" />
+          <span className="text-[10px] font-bold tracking-widest uppercase font-maxwell">Staff</span>
+        </div>
+      </nav>
+    </div>
+  );
+};
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\LoginScreen.tsx ===
+'use client';
+
+import React, { useState } from 'react';
+import { ShieldAlert, KeyRound, Mail } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+
+interface LoginScreenProps {
+  targetView: 'admin' | 'staff';
+  onLogin: (role: 'ADMIN' | 'STAFF', user: { userId: string; email: string }) => void;
+  onCancel: () => void;
+}
+
+type RoleRow = { role: 'ADMIN' | 'STAFF'; is_active: boolean };
+
+export const LoginScreen: React.FC<LoginScreenProps> = ({ targetView, onLogin, onCancel }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const deny = async (msg: string) => {
+    await supabase.auth.signOut();
+    setError(msg);
+    setLoading(false);
+  };
+
+// Find handleSubmit and replace with:
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (signInError || !data.session?.user) {
+        setLoading(false);
+        return deny('Invalid credentials');
+      }
+
+      const userId = data.session.user.id;
+
+      // Check V12 Table: access_control
+      const { data: roleRow, error: roleError } = await supabase
+        .from('access_control')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (roleError) return deny('System error: role lookup failed');
+      if (!roleRow) return deny('Access denied: no active role assigned');
+
+      if (targetView === 'admin' && roleRow.role !== 'ADMIN') {
+        return deny('Access denied: admin only');
+      }
+
+      onLogin(roleRow.role as any, { userId, email: cleanEmail });
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      await supabase.auth.signOut();
+      setError('System error: could not login');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 animate-in fade-in duration-500">
+      <div className="w-full max-w-md bg-neutral-900 border-4 border-white shadow-[15px_15px_0px_0px_#facc15] relative">
+        <div className="bg-yellow-400 p-4 text-black flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="w-5 h-5" />
+            <span className="font-mono font-bold uppercase tracking-widest text-xs">Restricted Area</span>
+          </div>
+          <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+        </div>
+
+        <div className="p-10">
+          <div className="mb-10">
+            <h2 className="text-4xl font-maxwell font-bold uppercase tracking-tighter mb-2 text-white">
+              {targetView === 'admin' ? 'Command' : 'Paddock'}
+            </h2>
+            <div className="h-1 w-12 bg-red-600"></div>
+            <p className="text-neutral-400 text-xs font-mono mt-4 uppercase">
+              // AUTHENTICATION REQUIRED
+              <br />
+              Enter email + password.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-neutral-400 flex items-center gap-2">
+                <Mail className="w-3 h-3" /> Email
+              </label>
+              <input
+                autoFocus
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-black border-2 border-neutral-700 p-3 font-mono text-sm focus:border-yellow-400 outline-none transition text-white"
+                placeholder="name@company.com"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-neutral-400 flex items-center gap-2">
+                <KeyRound className="w-3 h-3" /> Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-black border-2 border-neutral-700 p-3 font-mono text-sm focus:border-yellow-400 outline-none transition text-white"
+                placeholder="******"
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-600 text-white p-3 text-xs font-mono uppercase tracking-wide flex items-center justify-center gap-2 animate-in slide-in-from-top-2 border-2 border-white">
+                <ShieldAlert className="w-4 h-4" /> {error}
+              </div>
+            )}
+
+            <div className="pt-6 space-y-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-white text-black font-maxwell font-bold text-xl uppercase tracking-widest py-4 hover:bg-yellow-400 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 border-2 border-transparent"
+              >
+                {loading ? 'Verifying...' : 'Authorize'}
+              </button>
+
+              <button
+                type="button"
+                onClick={onCancel}
+                className="w-full text-[10px] font-bold uppercase tracking-widest text-neutral-500 hover:text-white py-2"
+              >
+                Abort Sequence
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\QRScanner.tsx ===
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
+
+interface QRScannerProps {
+  onScan: (decodedText: string) => void;
+  isActive: boolean;
+}
+
+export const QRScanner: React.FC<QRScannerProps> = ({ onScan, isActive }) => {
+  const [error, setError] = useState<string | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const regionId = "html5qr-code-full-region";
+
+  useEffect(() => {
+    // Only initialize if active and library loaded
+    if (isActive && typeof Html5Qrcode !== 'undefined' && !scannerRef.current) {
+        startScanner();
+    }
+
+    return () => {
+       if (scannerRef.current) {
+           scannerRef.current.stop().catch(console.error);
+           scannerRef.current = null;
+       }
+    };
+  }, [isActive]);
+
+  const startScanner = async () => {
+      try {
+          const html5QrCode = new Html5Qrcode(regionId);
+          scannerRef.current = html5QrCode;
+          
+          await html5QrCode.start(
+              { facingMode: "environment" }, 
+              { fps: 10, qrbox: { width: 250, height: 250 } },
+              (decodedText: string) => {
+                  onScan(decodedText);
+                  // Optional: pause or stop scanning? We keep scanning for Staff flow usually.
+              },
+              () => {
+                  // ignore frame errors
+              }
+          );
+      } catch (err) {
+          console.error(err);
+          setError("Could not access camera. Please allow permissions.");
+      }
+  };
+
+  return (
+    <div className="relative w-full h-full bg-black overflow-hidden flex items-center justify-center">
+       <div id={regionId} className="w-full h-full object-cover"></div>
+       {error && <div className="absolute inset-0 flex items-center justify-center text-white bg-black/80 p-6 text-center">{error}</div>}
+       <div className="absolute inset-0 border-[40px] border-black/50 pointer-events-none"></div>
+       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-white/50 rounded-lg pointer-events-none"></div>
+       <div className="absolute bottom-8 left-0 right-0 text-center text-white/70 text-sm font-medium">Align QR Code within frame</div>
+    </div>
+  );
+};
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\StaffDashboard.tsx ===
+'use client';
+
+import React, { useState } from 'react';
+import { Scan, UserCheck, XCircle, Search, CheckSquare, Square } from 'lucide-react';
+import { QRScanner } from './QRScanner';
+import { storageService } from '../services/storageService';
+import { Booking } from '../types';
+
+export const StaffDashboard: React.FC = () => {
+  const [pendingBooking, setPendingBooking] = useState<Booking | null>(null);
+  const [attendance, setAttendance] = useState<Set<number>>(new Set());
+  const [scanStatus, setScanStatus] = useState<'idle' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [manualCode, setManualCode] = useState('');
+  const [confirmedResult, setConfirmedResult] = useState<{ message: string; count: number } | null>(null);
+
+  const processCode = async (dataStr: string) => {
+    try {
+      let bookingId: string | undefined;
+      let refCode: string;
+
+      try {
+        const data = JSON.parse(dataStr);
+        bookingId = typeof data?.id === 'string' ? data.id : undefined;
+        refCode = typeof data?.ref === 'string' ? data.ref : String(dataStr).toUpperCase().trim();
+      } catch {
+        refCode = String(dataStr).toUpperCase().trim();
+      }
+
+      const bookings = await Promise.resolve(storageService.getBookings());
+
+      let match: Booking | undefined;
+      if (bookingId) {
+        match = bookings.find((b) => b.id === bookingId);
+      } else {
+        match = bookings.find((b) => b.referenceCode === refCode);
+      }
+
+      if (match) {
+        setConfirmedResult(null);
+        setPendingBooking(match);
+
+        const allIndices = new Set<number>();
+        (match.attendeeNames ?? []).forEach((_, idx) => allIndices.add(idx));
+        setAttendance(allIndices);
+
+        setScanStatus('idle');
+        setErrorMessage('');
+      } else {
+        setScanStatus('error');
+        setErrorMessage('Ticket Not Found');
+        setPendingBooking(null);
+      }
+    } catch {
+      setScanStatus('error');
+      setErrorMessage('Read Error');
+      setPendingBooking(null);
+    }
+  };
+
+  const toggleAttendance = (index: number) => {
+    setAttendance((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+ // Find confirmCheckIn and replace with:
+  const confirmCheckIn = async () => {
+    if (!pendingBooking) return;
+
+    try {
+        const actualCount = attendance.size;
+        
+        // Use the guestIds mapped in storageService.getBookings
+        const guestIds = pendingBooking.guestIds || [];
+        
+        // Filter IDs based on the selected indices
+        const arrivedIds = guestIds.filter((_, idx) => attendance.has(idx));
+
+        // Call RPC via Service
+        await storageService.processCheckIn(pendingBooking.id, arrivedIds);
+
+        setConfirmedResult({
+            message:
+                actualCount < pendingBooking.pax
+                ? `Checked in ${actualCount}. ${pendingBooking.pax - actualCount} released.`
+                : `Success. ${actualCount} checked in.`,
+            count: actualCount,
+        });
+
+        setPendingBooking(null);
+    } catch (e: any) {
+        setErrorMessage(e?.message || "Check-in failed");
+        setScanStatus('error');
+    }
+  };
+
+  const cancelCheckIn = () => {
+    setPendingBooking(null);
+    setScanStatus('idle');
+    setErrorMessage('');
+  };
+
+  return (
+    <div className="h-[calc(100vh-80px)] md:h-[calc(100vh-90px)] flex flex-col md:flex-row bg-black">
+      {/* Scanner Section */}
+      <div
+        className={`relative flex-grow md:w-1/2 bg-black border-r-2 border-white/20 ${
+          pendingBooking ? 'opacity-20 pointer-events-none' : 'opacity-100'
+        }`}
+      >
+        <QRScanner onScan={processCode} isActive={!pendingBooking} />
+      </div>
+
+      {/* Control Panel Section */}
+      <div className="h-2/3 md:h-full md:w-1/2 bg-neutral-900 p-6 flex flex-col overflow-y-auto border-l-4 border-white">
+        <div className="flex items-center justify-between mb-8 border-b-2 border-white pb-4">
+          <h2 className="text-3xl font-maxwell font-bold uppercase tracking-tighter text-yellow-400">Gate Control</h2>
+          <div className="w-3 h-3 bg-red-600 animate-pulse"></div>
+        </div>
+
+        {!pendingBooking && !confirmedResult && (
+          <div className="flex mb-8">
+            <input
+              type="text"
+              className="flex-grow bg-black border-2 border-white border-r-0 p-4 font-mono uppercase focus:border-yellow-400 outline-none text-white"
+              placeholder="REF CODE..."
+              value={manualCode}
+              onChange={(e) => setManualCode(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && processCode(manualCode)}
+            />
+            <button
+              onClick={() => processCode(manualCode)}
+              className="bg-white text-black px-6 font-bold uppercase tracking-widest hover:bg-red-600 hover:text-white transition-colors"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {scanStatus === 'error' && !pendingBooking && (
+          <div className="bg-red-600 text-white p-6 text-center border-2 border-white shadow-[8px_8px_0px_0px_#fff]">
+            <XCircle className="w-12 h-12 mx-auto mb-2" />
+            <h3 className="text-2xl font-maxwell font-bold uppercase">{errorMessage}</h3>
+            <button onClick={() => setScanStatus('idle')} className="mt-4 text-xs font-bold uppercase underline">
+              Reset Scanner
+            </button>
+          </div>
+        )}
+
+        {pendingBooking && (
+          <div className="flex-grow flex flex-col animate-in slide-in-from-right-8 duration-300">
+            <div className="mb-6 bg-black border-2 border-white p-4">
+              <span className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest block mb-1">Pass Holder</span>
+              <h3 className="text-3xl font-maxwell font-bold uppercase tracking-tighter leading-none text-white">
+                {pendingBooking.visitorName}
+              </h3>
+              <div className="flex gap-4 mt-2 text-xs font-mono text-neutral-400 border-t border-neutral-800 pt-2">
+                <span>{pendingBooking.time}</span>
+                <span>REF: {pendingBooking.referenceCode}</span>
+              </div>
+            </div>
+
+            <div className="flex-grow overflow-y-auto space-y-2 mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold uppercase text-yellow-400">Roll Call</p>
+                <span className="text-xs font-mono text-neutral-400">
+                  ({attendance.size}/{pendingBooking.attendeeNames.length})
+                </span>
+              </div>
+
+              {pendingBooking.attendeeNames.map((name, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => toggleAttendance(idx)}
+                  className={`p-4 border-2 flex items-center gap-4 cursor-pointer transition-all ${
+                    attendance.has(idx)
+                      ? 'border-yellow-400 bg-yellow-400 text-black'
+                      : 'border-neutral-700 text-neutral-500 bg-black'
+                  }`}
+                >
+                  {attendance.has(idx) ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                  <span className="font-bold uppercase font-mono text-sm">{name || `Pilot ${idx + 1}`}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-auto space-y-4">
+              <button
+                onClick={() => void confirmCheckIn()}
+                className="w-full py-5 bg-red-600 text-white font-maxwell font-bold uppercase text-xl tracking-widest hover:bg-white hover:text-black transition-colors shadow-[6px_6px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+              >
+                Confirm Entry
+              </button>
+              <button
+                onClick={cancelCheckIn}
+                className="w-full py-3 text-xs font-bold uppercase tracking-widest text-neutral-500 hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {confirmedResult && (
+          <div className="text-center w-full animate-in zoom-in duration-300 flex flex-col items-center justify-center flex-grow">
+            <div className="w-24 h-24 bg-yellow-400 text-black flex items-center justify-center mb-6 shadow-[8px_8px_0px_0px_#dc2626]">
+              <UserCheck className="w-12 h-12" />
+            </div>
+            <h3 className="text-3xl font-maxwell font-bold uppercase mb-2 text-white">Verified</h3>
+            <p className="font-mono text-sm text-neutral-400 mb-8 max-w-xs mx-auto">{confirmedResult.message}</p>
+            <button
+              onClick={() => setConfirmedResult(null)}
+              className="bg-white text-black border-2 border-white px-8 py-3 font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
+            >
+              Next Scan
+            </button>
+          </div>
+        )}
+
+        {!pendingBooking && !confirmedResult && scanStatus === 'idle' && (
+          <div className="text-center text-neutral-600 mt-12">
+            <Scan className="w-16 h-16 mx-auto mb-4 opacity-20" />
+            <p className="font-mono text-xs uppercase">System Ready</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\TicketPDF.ts ===
+import QRCode from 'qrcode';
+import { Booking } from '../types';
+
+export const generateQRImage = async (booking: Booking, experienceName: string) => {
+    // 1. High-Res Canvas Setup (Poster Style)
+    const width = 800;
+    const height = 1500; // Increased height again for spacing
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Helper: Load Image
+    const loadImage = (url: string): Promise<HTMLImageElement | null> => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = url;
+        });
+    };
+
+    // Helper: Load Font
+    const loadFont = async () => {
+        try {
+            await document.fonts.load("bold 60px 'Maxwell'");
+            await document.fonts.load("40px 'Oswald'");
+        } catch (e) { console.warn("Font load warning", e); }
+    };
+
+    await loadFont();
+
+    const [miatLogo, bcLogo] = await Promise.all([
+        loadImage('/Logo MIAT_NEG.png'),
+        loadImage('/logo-bc.png')
+    ]);
+
+    // --- DESIGN EXECUTION ---
+
+    // 2. Background: Deep Metallic Gradient
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, '#1a1a1a'); // Dark Grey Top
+    gradient.addColorStop(1, '#000000'); // Pure Black Bottom
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // 3. Decorative Elements (Racing Theme)
+    // Side Accent Stripe
+    ctx.fillStyle = '#DC2626'; // Racing Red
+    ctx.fillRect(0, 100, 12, 300);
+    ctx.fillStyle = '#FACC15'; // Modena Yellow
+    ctx.fillRect(0, 420, 12, 100);
+
+    // Corner Accents (Top Right / Bottom Left)
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(width - 40, 40);
+    ctx.lineTo(width - 40, 100);
+    ctx.moveTo(width - 40, 40);
+    ctx.lineTo(width - 100, 40);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(40, height - 40);
+    ctx.lineTo(40, height - 100);
+    ctx.moveTo(40, height - 40);
+    ctx.lineTo(100, height - 40);
+    ctx.stroke();
+
+    let cursorY = 80;
+
+    // 4. Header Logo (MIAT)
+    if (miatLogo) {
+        const logoWidth = 220; 
+        const aspect = miatLogo.width / miatLogo.height;
+        const logoHeight = logoWidth / aspect;
+        const x = (width - logoWidth) / 2;
+        
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.1)';
+        ctx.shadowBlur = 30;
+        ctx.drawImage(miatLogo, x, cursorY, logoWidth, logoHeight);
+        ctx.shadowBlur = 0; // Reset
+        
+        cursorY += logoHeight + 120; // 1. Increased spacing (was 80) to separate from Paddock Pass
+    } else {
+        cursorY += 150;
+    }
+
+    // 5. Title Section
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FACC15'; // Yellow
+    ctx.font = 'bold 80px "Maxwell", sans-serif'; 
+    ctx.fillText('PADDOCK PASS', width / 2, cursorY);
+    cursorY += 50;
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '24px "Inter", sans-serif';
+    ctx.letterSpacing = '4px';
+    ctx.fillText('OFFICIAL ACCESS DOCUMENT', width / 2, cursorY);
+    cursorY += 60;
+
+    // Separator Line
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(100, cursorY);
+    ctx.lineTo(width - 100, cursorY);
+    ctx.stroke();
+    cursorY += 60;
+
+    // 6. Experience Logo - Bigger
+    if (bcLogo) {
+        const logoWidth = 340; // 2. Increased from 280
+        const aspect = bcLogo.width / bcLogo.height;
+        const logoHeight = logoWidth / aspect;
+        const x = (width - logoWidth) / 2;
+        
+        ctx.drawImage(bcLogo, x, cursorY, logoWidth, logoHeight);
+        cursorY += logoHeight + 60;
+    } else {
+        cursorY += 100;
+    }
+
+    // 7. QR Code "Chip" Card
+    const cardSize = 450; 
+    const cardX = (width - cardSize) / 2;
+    const cardY = cursorY;
+    
+    // Draw Card Body
+    ctx.fillStyle = '#FFFFFF';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 10;
+    
+    const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+    };
+    roundRect(ctx, cardX, cardY, cardSize, cardSize, 25);
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    // QR Code Generation
+    try {
+        const qrSize = 360; 
+        const qrUrl = await QRCode.toDataURL(JSON.stringify({
+            id: booking.id,
+            ref: booking.referenceCode
+        }), { 
+            width: qrSize, 
+            margin: 1, 
+            color: { dark: '#111111', light: '#FFFFFF' }
+        });
+        
+        const qrImg = new Image();
+        qrImg.src = qrUrl;
+        await new Promise(r => qrImg.onload = r);
+        
+        const qrX = cardX + (cardSize - qrSize) / 2;
+        const qrY = cardY + (cardSize - qrSize) / 2;
+        
+        ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+    } catch (e) {
+        console.error(e);
+    }
+    
+    cursorY += cardSize + 50; // 3. Increased spacing (was 100) to push Access Code down
+
+    // 8. Footer Telemetry Data
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 24px "Courier New", monospace';
+    // Label
+    ctx.fillStyle = '#666';
+    ctx.fillText('ACCESS CODE', width / 2, cursorY);
+    cursorY += 65;
+    // Value
+    ctx.fillStyle = '#FACC15'; // Yellow
+    ctx.font = 'bold 72px "Courier New", monospace';
+    ctx.fillText(booking.referenceCode, width / 2, cursorY);
+    cursorY += 20;
+
+    // Grid details
+    const boxY = cursorY+10;
+    // Ensure we don't draw outside canvas if calculation is off
+    if (boxY < height) {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, boxY, width, height - boxY); // Fill rest of bottom
+        
+        ctx.beginPath();
+        ctx.moveTo(0, boxY);
+        ctx.lineTo(width, boxY);
+        ctx.strokeStyle = '#333';
+        ctx.stroke();
+
+        const detailY = boxY + 80;
+        
+        // Left: Date
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#888';
+        ctx.font = 'bold 16px "Inter", sans-serif';
+        ctx.fillText('MISSION DATE', width * 0.25, detailY);
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 28px "Inter", sans-serif';
+        ctx.fillText(booking.date, width * 0.25, detailY + 35);
+
+        // Right: Time
+        ctx.fillStyle = '#888';
+        ctx.font = 'bold 16px "Inter", sans-serif';
+        ctx.fillText('LAUNCH TIME', width * 0.75, detailY);
+        ctx.fillStyle = '#FFF';
+        ctx.font = 'bold 28px "Inter", sans-serif';
+        ctx.fillText(`${booking.time} HRS`, width * 0.75, detailY + 35);
+
+        // Center Vertical Line
+        ctx.beginPath();
+        ctx.moveTo(width / 2, detailY - 20);
+        ctx.lineTo(width / 2, detailY + 60);
+        ctx.strokeStyle = '#333';
+        ctx.stroke();
+    }
+
+    // 9. Download
+    const link = document.createElement('a');
+    link.download = `Pass_${booking.referenceCode}_Souvenir.png`;
+    link.href = canvas.toDataURL('image/png', 1.0); // Max quality
+    link.click();
+};
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\VisitorBooking.tsx ===
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import {
+  ArrowRight,
+  Check,
+  AlertCircle,
+  Calendar,
+  ShieldCheck,
+  Trophy,
+  ChevronLeft,
+  Clock,
+  Zap,
+  QrCode,
+} from 'lucide-react';
+import { Experience, Booking, Slot } from '../types';
+import { storageService } from '../services/storageService';
+import { bookingService } from '../services/bookingService';
+import { generateQRImage } from './TicketPDF';
+import { format } from 'date-fns';
+import Image from 'next/image';
+
+export const VisitorBooking: React.FC = () => {
+  // Scene Control: 1=Welcome, 2=Pax, 3=ExpSelection, 4=SlotSel, 5=Names, 6=Validate, 7=Ticket
+  const [scene, setScene] = useState(1);
+  const [pax, setPax] = useState(2);
+
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [isLoadingExperiences, setIsLoadingExperiences] = useState(true);
+
+  const [selectedExpId, setSelectedExpId] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+
+  const [nextSlots, setNextSlots] = useState<{ [key: string]: { label: string; available: boolean } }>({});
+  const [slotsForDate, setSlotsForDate] = useState<Slot[]>([]);
+
+  const [visitorName, setVisitorName] = useState('');
+  const [visitorEmail, setVisitorEmail] = useState('');
+  const [attendees, setAttendees] = useState<string[]>([]);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [confirmedBookings, setConfirmedBookings] = useState<Booking[]>([]);
+
+  // Load Experiences + compute "Next slot" labels
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      setIsLoadingExperiences(true);
+
+      const allExps = await Promise.resolve(storageService.getExperiences());
+      const exps = allExps.filter((e) => e.isActive);
+
+      if (cancelled) return;
+      setExperiences(exps);
+
+      const nextSlotMap: { [key: string]: { label: string; available: boolean } } = {};
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const now = new Date();
+
+      const results = await Promise.all(
+        exps.map(async (exp) => {
+          const daySlots = await bookingService.generateSlotsForDateAsync(exp, todayStr);
+
+          const upcoming = daySlots
+            .filter((s) => s.startTime > now && s.remainingCapacity >= pax)
+            .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+
+          if (upcoming.length > 0) {
+            const next = upcoming[0];
+            return [
+              exp.id,
+              {
+                label: `NEXT: TODAY ${format(next.startTime, 'HH:mm')}`,
+                available: true,
+              },
+            ] as const;
+          }
+
+          const anyFuture = daySlots.filter((s) => s.startTime > now);
+          return [
+            exp.id,
+            {
+              label: anyFuture.length > 0 ? 'GROUP TOO LARGE' : 'NO SLOTS TODAY',
+              available: false,
+            },
+          ] as const;
+        })
+      );
+
+      for (const [id, status] of results) nextSlotMap[id] = status;
+
+      if (cancelled) return;
+      setNextSlots(nextSlotMap);
+      setIsLoadingExperiences(false);
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pax, scene]);
+
+  // Load Slots for selected experience (Scene 4)
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (scene !== 4 || !selectedExpId) return;
+
+      const freshExps = await Promise.resolve(storageService.getExperiences());
+      const freshExp = freshExps.find((e) => e.id === selectedExpId);
+      if (!freshExp) {
+        if (!cancelled) setSlotsForDate([]);
+        return;
+      }
+
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const rawSlots = await bookingService.generateSlotsForDateAsync(freshExp, todayStr);
+      const now = new Date();
+      const filtered = rawSlots.filter((s) => s.endTime > now);
+
+      if (cancelled) return;
+      setSlotsForDate(filtered);
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scene, selectedExpId]);
+
+  const handleValidationSubmit = async () => {
+    if (!selectedSlot || !selectedExpId) return;
+
+    const booking = await Promise.resolve(
+      bookingService.createBooking(selectedSlot, pax, visitorName, visitorEmail, attendees)
+    );
+
+    setConfirmedBookings([booking]);
+    setScene(7);
+  };
+
+  const selectedExpName = experiences.find((e) => e.id === selectedExpId)?.name;
+
+  // --- SCENE 1: WELCOME ---
+  if (scene === 1) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700 relative overflow-hidden bg-black">
+        <div className="absolute top-0 left-0 w-32 h-32 border-l-4 border-t-4 border-yellow-400/20"></div>
+        <div className="absolute bottom-0 right-0 w-32 h-32 border-r-4 border-b-4 border-yellow-400/20"></div>
+
+        <div className="mb-8 relative w-full max-w-sm flex justify-center">
+          <Image
+            src="/logo-bc.png"
+            alt="Black Cats & Chequered Flags Logo"
+            width={200}
+            height={80}
+            className="w-3/12 md:w-full h-auto relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+          />
+        </div>
+
+        <h1 className="text-6xl md:text-8xl font-maxwell font-bold tracking-tighter mb-6 uppercase leading-[0.9] text-yellow-400">
+          The Legend <br />
+          <span className="text-white font-revolution">Awaits</span>
+        </h1>
+
+        <div className="w-24 h-1 bg-yellow-400 mb-8 mx-auto"></div>
+
+        <p className="text-xl md:text-2xl text-neutral-100 max-w-2xl font-light mb-12 tracking-wide font-maxwell uppercase mx-auto">
+          Step into the mind of Alberto Ascari.
+          <br />
+          Race against destiny.
+        </p>
+
+        <button
+          onClick={() => setScene(2)}
+          className="group relative px-16 py-6 bg-red-600 text-white font-maxwell font-bold text-xl tracking-[0.2em] uppercase overflow-hidden hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#facc15] hover:shadow-[4px_4px_0px_0px_#facc15] hover:translate-x-[2px] hover:translate-y-[2px]"
+        >
+          Enter Paddock
+        </button>
+      </div>
+    );
+  }
+
+  // --- SCENE 2: CREW SIZE ---
+  if (scene === 2) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 animate-in slide-in-from-right-8 duration-500 bg-black">
+        <h2 className="text-5xl md:text-7xl font-maxwell font-bold mb-4 uppercase tracking-tighter text-center text-yellow-400">
+          Crew Size
+        </h2>
+        <p className="text-white mb-12 text-center max-w-md uppercase font-bold tracking-widest text-sm">
+          Select your mechanics count
+        </p>
+
+        <div className="flex items-center gap-4 mb-12 select-none">
+          <button
+            onClick={() => setPax(Math.max(1, pax - 1))}
+            className="w-20 h-20 border-2 border-white text-4xl text-white hover:bg-white hover:text-black transition flex items-center justify-center font-maxwell font-bold"
+          >
+            −
+          </button>
+
+          <div className="flex flex-col items-center w-40 py-4 border-t-2 border-b-2 border-white bg-neutral-900">
+            <span className="text-8xl font-maxwell font-bold tracking-tighter leading-none text-white">{pax}</span>
+            <span className="text-[10px] font-bold uppercase text-yellow-400 tracking-[0.3em]">PERSONS</span>
+          </div>
+
+          <button
+            onClick={() => setPax(pax + 1)}
+            className="w-20 h-20 bg-white text-black text-4xl hover:bg-yellow-400 transition flex items-center justify-center font-maxwell font-bold shadow-[4px_4px_0px_0px_#dc2626]"
+          >
+            +
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 text-white border border-white bg-transparent px-6 py-3 text-xs font-bold uppercase tracking-widest mb-12">
+          <AlertCircle className="w-4 h-4 text-yellow-400" />
+          <span>Max 4 Mechanics for Collab Mode</span>
+        </div>
+
+        <button
+          onClick={() => setScene(3)}
+          className="w-full max-w-xs bg-red-600 text-white py-5 font-maxwell font-bold text-xl tracking-widest uppercase hover:bg-white hover:text-black transition-colors shadow-[8px_8px_0px_0px_#fff] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px]"
+        >
+          Confirm Size
+        </button>
+      </div>
+    );
+  }
+
+  // --- SCENE 3: EXPERIENCE SELECTION ---
+  if (scene === 3) {
+    if (isLoadingExperiences) {
+      return (
+        <div className="min-h-[80vh] flex flex-col items-center justify-center p-12 text-center font-maxwell text-3xl uppercase text-white">
+          Loading Experiences…
+        </div>
+      );
+    }
+
+    if (experiences.length === 0) {
+      return (
+        <div className="min-h-[80vh] flex flex-col items-center justify-center p-12 text-center font-maxwell font-revolution text-3xl uppercase text-white">
+          No Experiences Loaded
+        </div>
+      );
+    }
+
+    const primaryExp = experiences[0];
+    const secondaryExp = experiences[1] || experiences[0];
+    const exp1Status = nextSlots[primaryExp.id] || { label: 'Checking...', available: false };
+    const exp2Status = nextSlots[secondaryExp.id] || { label: 'Checking...', available: false };
+
+    const isExp1Disabled = !exp1Status.available || pax > primaryExp.maxCapacity;
+    const isExp2Disabled = !exp2Status.available || pax > secondaryExp.maxCapacity;
+
+    return (
+      <div className="max-w-6xl mx-auto p-6 animate-in fade-in duration-500">
+        <button
+          onClick={() => setScene(2)}
+          className="mb-8 flex items-center gap-2 text-xs font-bold tracking-widest text-neutral-500 hover:text-white uppercase group"
+        >
+          <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Crew
+        </button>
+
+        <div className="mb-12 border-b-4 border-white pb-6">
+          <h2 className="text-6xl md:text-8xl font-maxwell font-bold uppercase tracking-tighter mb-2 text-yellow-400">
+            Select Mode
+          </h2>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 bg-red-600"></div>
+            <p className="font-bold uppercase tracking-widest text-sm text-white">Choose your entry point</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* EXP 1 */}
+          <div
+            onClick={() => {
+              if (!isExp1Disabled) {
+                setSelectedExpId(primaryExp.id);
+                setScene(4);
+              }
+            }}
+            className={`group relative border-2 border-white p-8 transition-all duration-300 flex flex-col min-h-[500px]
+              ${
+                isExp1Disabled
+                  ? 'bg-neutral-900 opacity-60 cursor-not-allowed pattern-diagonal-lines'
+                  : 'bg-neutral-900 text-white hover:bg-neutral-800 cursor-pointer shadow-[12px_12px_0px_0px_#dc2626] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[16px_16px_0px_0px_#dc2626]'
+              }`}
+          >
+            <div className="flex justify-between items-start mb-12">
+              <ShieldCheck className={`w-16 h-16 ${isExp1Disabled ? 'text-neutral-600' : 'text-white'}`} strokeWidth={1} />
+              <span
+                className={`text-[10px] font-bold border border-current px-2 py-1 uppercase tracking-widest ${
+                  isExp1Disabled ? 'text-neutral-500' : 'text-yellow-400 border-yellow-400'
+                }`}
+              >
+                Multiplayer
+              </span>
+            </div>
+
+            <h3 className="text-5xl font-maxwell font-bold uppercase tracking-tighter mb-4 leading-none text-white">
+              The Pit Lane
+            </h3>
+            <p className={`text-sm font-mono leading-relaxed mb-8 flex-grow ${isExp1Disabled ? 'text-neutral-500' : 'text-neutral-400'}`}>
+              // TEAM SYNC REQUIRED
+              <br />
+              Suit up as a 1950s mechanic. Change tires, refuel, and work as a unit. High intensity collaboration.
+            </p>
+
+            <div className="mt-auto pt-6 border-t border-white/20">
+              <div className="flex justify-between items-center">
+                <span className={`font-mono text-xs uppercase ${isExp1Disabled ? 'text-red-600 font-bold' : 'text-green-400'}`}>
+                  {pax > primaryExp.maxCapacity ? `MAX ${primaryExp.maxCapacity} PAX` : exp1Status.label}
+                </span>
+                {!isExp1Disabled && <ArrowRight className="w-6 h-6 text-yellow-400 group-hover:translate-x-2 transition-transform" />}
+              </div>
+            </div>
+          </div>
+
+          {/* EXP 2 */}
+          <div
+            onClick={() => {
+              if (!isExp2Disabled) {
+                setSelectedExpId(secondaryExp.id);
+                setScene(4);
+              }
+            }}
+            className={`group relative border-2 border-white p-8 transition-all duration-300 flex flex-col min-h-[500px] bg-white text-black
+              ${
+                isExp2Disabled
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'cursor-pointer shadow-[12px_12px_0px_0px_#facc15] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[16px_16px_0px_0px_#facc15]'
+              }`}
+          >
+            <div className="flex justify-between items-start mb-12">
+              <Trophy className="w-16 h-16 text-black" strokeWidth={1} />
+              <span className="text-[10px] font-bold border border-black px-2 py-1 uppercase tracking-widest bg-black text-white">
+                Cinematic
+              </span>
+            </div>
+
+            <h3 className="text-5xl font-maxwell font-bold uppercase tracking-tighter mb-4 leading-none text-black">The Prophecy</h3>
+            <p className="text-sm font-mono leading-relaxed mb-8 flex-grow text-neutral-800">
+              // OBSERVER MODE
+              <br />
+              Immerse yourself directly in the cinematic VR story. No pit duties. Pure narrative experience.
+            </p>
+
+            <div className="mt-auto pt-6 border-t border-black/10">
+              <div className="flex justify-between items-center">
+                <span className={`font-mono text-xs uppercase ${isExp2Disabled ? 'text-red-600 font-bold' : 'text-green-600'}`}>
+                  {pax > secondaryExp.maxCapacity ? `MAX ${secondaryExp.maxCapacity} PAX` : exp2Status.label}
+                </span>
+                {!isExp2Disabled && <ArrowRight className="w-6 h-6 text-black group-hover:translate-x-2 transition-transform" />}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- SCENE 4: SLOT SELECTION ---
+  if (scene === 4) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 animate-in slide-in-from-right-8 duration-500">
+        <button
+          onClick={() => setScene(3)}
+          className="mb-8 flex items-center gap-2 text-xs font-bold tracking-widest text-neutral-500 hover:text-white uppercase group"
+        >
+          <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Return to Mode
+        </button>
+
+        <div className="flex justify-between items-end mb-8 border-b-4 border-white pb-4">
+          <div>
+            <h2 className="text-5xl md:text-7xl font-maxwell font-bold uppercase tracking-tighter text-yellow-400">Schedule</h2>
+            <div className="flex items-center gap-2 mt-2">
+              <Calendar className="w-4 h-4 text-red-600" />
+              <span className="text-sm font-bold uppercase tracking-widest font-maxwell text-white">
+                {format(new Date(), 'MMMM d, yyyy')}
+              </span>
+            </div>
+          </div>
+          <div className="hidden md:block text-right">
+            <div className="text-xs font-bold uppercase tracking-widest text-neutral-500">Time Zone</div>
+            <div className="font-mono font-bold text-white">MARANELLO (CET)</div>
+          </div>
+        </div>
+
+        <div className="bg-neutral-900 border-2 border-white shadow-[8px_8px_0px_0px_#333]">
+          <div className="grid grid-cols-12 bg-white text-black p-3 text-[10px] font-bold uppercase tracking-widest">
+            <div className="col-span-3">Start Time</div>
+            <div className="col-span-6">Status</div>
+            <div className="col-span-3 text-right">Action</div>
+          </div>
+
+          <div className="divide-y-2 divide-neutral-800">
+            {slotsForDate.length === 0 ? (
+              <div className="p-16 text-center">
+                <Clock className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
+                <p className="font-maxwell font-bold uppercase text-xl text-neutral-500">Track Closed</p>
+              </div>
+            ) : (
+              slotsForDate.map((slot) => {
+                const isPassed = slot.status === 'PASSED';
+                const cantFit = slot.remainingCapacity < pax;
+                const isDisabled = isPassed || cantFit;
+
+                return (
+                  <div
+                    key={slot.id}
+                    className={`grid grid-cols-12 items-center p-5 transition-all group ${
+                      isDisabled ? 'bg-black text-neutral-600' : 'hover:bg-neutral-800 cursor-pointer text-white'
+                    }`}
+                    onClick={() => {
+                      if (!isDisabled) {
+                        setSelectedSlot(slot);
+                        setAttendees(Array(pax).fill(''));
+                        setScene(5);
+                      }
+                    }}
+                  >
+                    <div className="col-span-3 font-mono text-xl font-bold tracking-tighter">{format(slot.startTime, 'HH:mm')}</div>
+
+                    <div className="col-span-6">
+                      {isPassed ? (
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-600 line-through">Departed</span>
+                      ) : cantFit ? (
+                        slot.remainingCapacity === 0 ? (
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-red-600">Full Grid</span>
+                        ) : (
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-orange-500">
+                            Only {slot.remainingCapacity} Seats
+                          </span>
+                        )
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-none animate-pulse"></div>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-green-500">Available</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="col-span-3 flex justify-end">
+                      {!isDisabled && (
+                        <div className="bg-white text-black p-2 group-hover:bg-yellow-400 transition-colors">
+                          <ArrowRight className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- SCENE 5: REGISTRATION ---
+  if (scene === 5 && selectedSlot) {
+    return (
+      <div className="max-w-3xl mx-auto p-6 animate-in slide-in-from-right-8 duration-500">
+        <button
+          onClick={() => setScene(4)}
+          className="mb-8 flex items-center gap-2 text-xs font-bold tracking-widest text-neutral-500 hover:text-white uppercase group"
+        >
+          <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back to Schedule
+        </button>
+
+        <div className="mb-8 border-b-4 border-white pb-4">
+          <h2 className="text-5xl md:text-6xl font-maxwell font-bold uppercase tracking-tighter text-yellow-400">Driver Details</h2>
+          <p className="font-mono text-xs mt-2 text-neutral-500">// MANDATORY TELEMETRY DATA</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 space-y-8">
+            <div className="bg-neutral-900 border-2 border-white p-6 shadow-[8px_8px_0px_0px_#333]">
+              <h3 className="text-sm font-bold uppercase tracking-widest mb-6 border-b border-neutral-700 pb-2 flex items-center gap-2 text-white">
+                <Zap className="w-4 h-4 text-yellow-400" /> Team Principle
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-neutral-400 mb-1 block">Full Name</label>
+                  <input
+                    required
+                    className="w-full bg-black border-b-2 border-neutral-700 p-3 font-mono text-sm focus:border-yellow-400 focus:bg-neutral-800 outline-none transition uppercase placeholder-neutral-700 text-white"
+                    placeholder="ENTER NAME"
+                    value={visitorName}
+                    onChange={(e) => setVisitorName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-neutral-400 mb-1 block">Contact Email</label>
+                  <input
+                    required
+                    type="email"
+                    className="w-full bg-black border-b-2 border-neutral-700 p-3 font-mono text-sm focus:border-yellow-400 focus:bg-neutral-800 outline-none transition uppercase placeholder-neutral-700 text-white"
+                    placeholder="ENTER EMAIL"
+                    value={visitorEmail}
+                    onChange={(e) => setVisitorEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-neutral-900 border-2 border-white p-6 shadow-[8px_8px_0px_0px_#333]">
+              <h3 className="text-sm font-bold uppercase tracking-widest mb-6 border-b border-neutral-700 pb-2 text-white">
+                Drivers ({pax})
+              </h3>
+              <div className="space-y-3">
+                {attendees.map((name, idx) => (
+                  <div key={idx} className="flex items-center gap-4">
+                    <span className="text-[10px] font-bold uppercase w-12 text-right text-neutral-500 font-mono">0{idx + 1}</span>
+                    <input
+                      required
+                      className="flex-grow bg-black border-b-2 border-neutral-700 p-2 font-mono text-sm focus:border-yellow-400 outline-none transition uppercase placeholder-neutral-700 text-white"
+                      placeholder="PILOT NAME"
+                      value={name}
+                      onChange={(e) => {
+                        const next = [...attendees];
+                        next[idx] = e.target.value;
+                        setAttendees(next);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-1">
+            <div className="bg-white text-black p-6 sticky top-24 border-2 border-white">
+              <h4 className="font-maxwell font-bold uppercase text-2xl mb-4 border-b border-black/20 pb-4">Summary</h4>
+              <div className="space-y-4 font-mono text-sm">
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Date</span>
+                  <span className="font-bold">{format(selectedSlot.startTime, 'dd.MM.yy')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Time</span>
+                  <span className="font-bold">{format(selectedSlot.startTime, 'HH:mm')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-500">Pax</span>
+                  <span className="font-bold">{pax}</span>
+                </div>
+              </div>
+              <button
+                disabled={!visitorName || !visitorEmail || attendees.some((a) => !a)}
+                onClick={() => setScene(6)}
+                className="w-full mt-8 bg-red-600 text-white py-4 font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- SCENE 6: VALIDATION ---
+  if (scene === 6 && selectedSlot) {
+    return (
+      <div className="max-w-2xl mx-auto p-6 animate-in zoom-in-95 duration-500">
+        <h2 className="text-5xl font-maxwell font-bold uppercase tracking-tighter mb-8 text-center text-yellow-400">Safety Check</h2>
+
+        <div className="bg-neutral-900 border-2 border-white p-8 relative overflow-hidden mb-8 shadow-[12px_12px_0px_0px_#fff]">
+          <div className="space-y-6 relative z-10 text-white">
+            <div className="flex justify-between border-b-2 border-dashed border-neutral-700 pb-4">
+              <span className="text-xs font-bold uppercase text-neutral-400 tracking-widest">Event</span>
+              <span className="font-bold uppercase font-maxwell tracking-wide text-yellow-400">Black Cats & Chequered Flags</span>
+            </div>
+            <div className="flex justify-between border-b-2 border-dashed border-neutral-700 pb-4">
+              <span className="text-xs font-bold uppercase text-neutral-400 tracking-widest">Experience</span>
+              <span className="font-bold uppercase font-maxwell tracking-wide">{selectedExpName}</span>
+            </div>
+            <div className="flex justify-between border-b-2 border-dashed border-neutral-700 pb-4">
+              <span className="text-xs font-bold uppercase text-neutral-400 tracking-widest">Launch</span>
+              <div className="text-right">
+                <div className="font-bold uppercase font-mono text-xl">{format(selectedSlot.startTime, 'HH:mm')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-4 mb-8 p-6 bg-neutral-900 border border-neutral-700">
+          <div
+            onClick={() => setAgreedToTerms(!agreedToTerms)}
+            className={`mt-1 flex-shrink-0 w-6 h-6 border-2 flex items-center justify-center cursor-pointer ${
+              agreedToTerms ? 'bg-yellow-400 border-yellow-400 text-black' : 'border-white bg-black'
+            }`}
+          >
+            {agreedToTerms && <Check className="w-4 h-4" />}
+          </div>
+          <p
+            className="text-sm font-medium leading-relaxed cursor-pointer select-none text-neutral-300"
+            onClick={() => setAgreedToTerms(!agreedToTerms)}
+          >
+            <span className="font-bold uppercase block mb-1 text-white">Email Consent</span>I agree to provide my email address which
+            will be used only for booking confirmation.
+          </p>
+        </div>
+
+        <div className="flex gap-4">
+          <button
+            onClick={() => setScene(5)}
+            className="w-1/3 bg-black border-2 border-white text-white font-bold uppercase tracking-widest py-5 hover:bg-neutral-800"
+          >
+            Back
+          </button>
+          <button
+            disabled={!agreedToTerms}
+            onClick={handleValidationSubmit}
+            className="w-2/3 bg-red-600 text-white font-maxwell font-bold uppercase text-xl tracking-widest py-5 hover:bg-white hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[8px_8px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#fff] transition-all"
+          >
+            Authorize Entry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- SCENE 7: TICKET ---
+  if (scene === 7 && confirmedBookings.length > 0) {
+    const booking = confirmedBookings[0];
+    const expName = experiences.find((e) => e.id === booking.experienceId)?.name || 'The Legend';
+
+    return (
+      <div className="min-h-[85vh] flex flex-col items-center justify-center p-6 text-center animate-in zoom-in duration-700">
+        <div className="mb-10">
+          <h2 className="text-7xl md:text-9xl font-maxwell font-bold uppercase tracking-tighter leading-none mb-2 text-yellow-400">
+            Access
+            <br />
+            Granted
+          </h2>
+          <p className="text-xl font-mono uppercase tracking-widest mt-4 text-white">See you on the grid.</p>
+        </div>
+
+        <div className="bg-white p-8 max-w-sm w-full border-4 border-double border-black shadow-[0_0_50px_rgba(255,255,255,0.2)] rotate-1 hover:rotate-0 transition-transform duration-500 relative text-black">
+          <div className="border-2 border-black p-6 text-center">
+            <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 border-b-2 border-black pb-2">Scuderia Pass</div>
+
+            <div className="w-40 h-40 bg-black mx-auto mb-6 flex items-center justify-center text-white">
+              <Check className="w-20 h-20" />
+            </div>
+
+            <div className="font-mono text-3xl font-bold tracking-widest mb-1">{booking.referenceCode}</div>
+            <div className="text-[10px] uppercase text-neutral-500 mb-8">Paddock Pass Identifier</div>
+
+            <div className="text-sm font-bold uppercase border-t-2 border-black pt-4 flex justify-between">
+              <span>{format(new Date(booking.date), 'dd.MM.yy')}</span>
+              <span>{booking.time} HRS</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 mt-8 w-full max-w-sm">
+          <button
+            onClick={() => generateQRImage(booking, expName)}
+            className="bg-neutral-900 border-2 border-white text-white font-bold uppercase py-4 hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+          >
+            <QrCode className="w-5 h-5" /> Save QR Code (Image)
+          </button>
+        </div>
+
+        <button
+          onClick={() => {
+            setScene(1);
+            setPax(1);
+            setConfirmedBookings([]);
+            setVisitorName('');
+            setVisitorEmail('');
+            setAttendees([]);
+            setAgreedToTerms(false);
+            setSelectedExpId(null);
+            setSelectedSlot(null);
+          }}
+          className="mt-8 text-xs font-bold uppercase tracking-widest border-b-2 border-white pb-1 text-white hover:text-yellow-400 hover:border-yellow-400 transition-colors"
+        >
+          Book Another Session
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\lib\supabase.ts ===
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase Environment Variables');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\services\bookingService.ts ===
+'use client';
+
+import { supabase } from '../lib/supabase';
+import { Experience, Slot, Booking, SlotOption } from '../types';
+import { format, parseISO, isBefore } from 'date-fns';
+
+export const bookingService = {
+  
+  // 1. GET SLOTS via RPC
+  generateSlotsForDateAsync: async (experience: Experience, dateStr: string): Promise<Slot[]> => {
+    // Calls the V12.3 Patch RPC we added to the DB
+    const { data: slots, error } = await supabase.rpc('get_public_availability', {
+      p_experience_id: experience.id,
+      p_date: dateStr
+    });
+
+    if (error) {
+      console.error("Slot Error", error);
+      return [];
+    }
+    if (!slots) return [];
+
+    const now = new Date();
+
+    return slots.map((s: any) => {
+      const startT = parseISO(`${dateStr}T${s.start_time}`);
+      const endT = parseISO(`${dateStr}T${s.end_time}`);
+      
+      const filled = Number(s.current_load);
+      const remaining = s.max_capacity - filled;
+      
+      let status: Slot['status'] = 'OPEN';
+      if (s.is_blocked) status = 'FULL'; 
+      else if (isBefore(startT, now)) status = 'PASSED';
+      else if (remaining <= 0) status = 'FULL';
+      else if (filled > 0) status = 'PARTIAL';
+
+      return {
+        id: s.slot_id,
+        experienceId: experience.id,
+        startTime: startT,
+        endTime: endT,
+        maxCapacity: s.max_capacity,
+        currentBookings: filled,
+        remainingCapacity: Math.max(0, remaining),
+        status,
+        isBlocked: s.is_blocked,
+      };
+    });
+  },
+
+  // 2. CREATE BOOKING (Hold + Confirm)
+  createBooking: async (
+    slot: Slot,
+    pax: number,
+    visitorName: string,
+    visitorEmail: string,
+    attendees: string[]
+  ): Promise<Booking> => {
+    
+    // Step A: Hold
+    const { data: hold, error: hErr } = await supabase.rpc('create_pending_booking', {
+      p_slot_id: slot.id,
+      p_party_size: pax,
+    });
+    if (hErr) throw new Error(hErr.message);
+
+    // Step B: Confirm
+    const { data: conf, error: cErr } = await supabase.rpc('confirm_booking', {
+      p_booking_id: hold.booking_id,
+      p_customer_name: visitorName,
+      p_customer_email: visitorEmail,
+      p_guest_names: attendees,
+    });
+    if (cErr) throw new Error(cErr.message);
+
+    return {
+      id: hold.booking_id,
+      slotId: slot.id,
+      experienceId: slot.experienceId,
+      date: format(slot.startTime, 'yyyy-MM-dd'),
+      time: format(slot.startTime, 'HH:mm'),
+      pax,
+      originalPax: pax,
+      visitorName,
+      visitorEmail,
+      attendeeNames: attendees,
+      referenceCode: conf.reference,
+      checkedIn: false,
+      status: 'CONFIRMED',
+    };
+  },
+
+  // Stubs
+  calculateSlots: () => [],
+  findBookingOptions: () => [],
+};
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\services\storageService.ts ===
+'use client';
+
+import { supabase } from '../lib/supabase';
+import { Experience, Booking, DaySchedule } from '../types';
+
+export const storageService = {
+  // --- EXPERIENCES (Admin) ---
+  getExperiences: async (): Promise<Experience[]> => {
+    // 1. Fetch Experiences
+    const { data: exps, error } = await supabase
+      .from('experiences')
+      .select('*')
+      .order('created_at');
+
+    if (error || !exps) {
+        console.error("Error loading experiences", error);
+        return [];
+    }
+
+    // 2. Fetch Schedules (Joined manually to match UI shape)
+    const { data: scheds } = await supabase.from('experience_schedules').select('*');
+
+    return exps.map((e: any) => {
+      const myScheds = (scheds || [])
+        .filter((s: any) => s.experience_id === e.id)
+        .map((s: any) => ({
+          startTime: String(s.start_time).slice(0, 5),
+          endTime: String(s.end_time).slice(0, 5),
+        }));
+
+      return {
+        id: e.id,
+        name: e.title,
+        description: e.description || '',
+        maxCapacity: e.max_people,
+        durationMinutes: e.duration_minutes,
+        offsetMinutes: e.setup_minutes,
+        color: e.timezone === 'UTC' ? 'bg-blue-600' : 'bg-emerald-600',
+        isActive: true, 
+        startDate: e.valid_from,
+        endDate: e.valid_until,
+        timeIntervals: myScheds,
+      };
+    });
+  },
+
+  updateExperience: async (exp: Experience) => {
+    // 1. Upsert Experience
+    // If ID is not a valid UUID (e.g. "new"), undefined lets DB generate one
+    const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    const idToUse = isUUID(exp.id) ? exp.id : undefined;
+
+    const { data: savedExp, error: expError } = await supabase
+      .from('experiences')
+      .upsert({
+        id: idToUse,
+        title: exp.name,
+        description: exp.description,
+        max_people: exp.maxCapacity,
+        duration_minutes: exp.durationMinutes,
+        setup_minutes: exp.offsetMinutes,
+        valid_from: exp.startDate,
+        valid_until: exp.endDate,
+        timezone: 'CET',
+      })
+      .select()
+      .single();
+
+    if (expError) throw new Error(expError.message);
+
+    if (savedExp) {
+      // 2. Replace Schedules
+      await supabase.from('experience_schedules').delete().eq('experience_id', savedExp.id);
+      
+      const schedPayload = exp.timeIntervals.map((t) => ({
+        experience_id: savedExp.id,
+        start_time: t.startTime,
+        end_time: t.endTime,
+      }));
+
+      if (schedPayload.length > 0) {
+        await supabase.from('experience_schedules').insert(schedPayload);
+      }
+
+      // 3. TRIGGER GENERATOR RPC
+      // This fills the 'slots' table based on the new schedule
+      await supabase.rpc('generate_slots_for_experience', { target_experience_id: savedExp.id });
+    }
+  },
+
+  deleteExperience: async (id: string) => {
+    await supabase.from('experiences').delete().eq('id', id);
+  },
+
+  // --- BOOKINGS (Admin/Staff) ---
+  getBookings: async (): Promise<Booking[]> => {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        booking_guests ( id, full_name, check_in_status, created_at ),
+        slots ( experience_id )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+
+    return data.map((b: any) => {
+        // Sort guests by creation time to ensure consistent indexing for Staff Check-in
+        const sortedGuests = (b.booking_guests || []).sort((x: any, y: any) => 
+            new Date(x.created_at).getTime() - new Date(y.created_at).getTime()
+        );
+        
+        return {
+            id: b.id,
+            slotId: b.slot_id,
+            experienceId: b.slots?.experience_id || '',
+            date: b.target_date,
+            time: String(b.target_time).slice(0, 5),
+            pax: b.party_size,
+            originalPax: b.party_size,
+            visitorName: b.customer_name,
+            visitorEmail: b.customer_email,
+            attendeeNames: sortedGuests.map((g: any) => g.full_name),
+            guestIds: sortedGuests.map((g: any) => g.id), // Crucial for Check-in
+            referenceCode: b.booking_reference,
+            checkedIn: sortedGuests.some((g: any) => g.check_in_status === 'ARRIVED'),
+            status: b.status,
+        };
+    });
+  },
+
+  // --- STAFF ACTIONS ---
+  processCheckIn: async (bookingId: string, arrivedGuestIds: string[]) => {
+    const { data, error } = await supabase.rpc('staff_process_checkin', {
+        p_booking_id: bookingId,
+        p_arrived_guest_ids: arrivedGuestIds
+    });
+
+    if (error) throw new Error(error.message);
+    return data; // { success: true, new_party_size: N }
+  },
+
+  // Legacy Stub
+  updateBooking: async () => {},
+  getBookingsForExperienceDate: async () => [],
+  getSchedules: async () => [],
+  saveSchedule: async () => {},
+};
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\types.ts ===
+export enum UserRole {
+  VISITOR = 'VISITOR',
+  ADMIN = 'ADMIN',
+  STAFF = 'STAFF',
+}
+
+export interface TimeInterval {
+  startTime: string; // HH:mm
+  endTime: string;   // HH:mm
+}
+
+export interface Experience {
+  id: string; // UUID
+  name: string;             // DB: title
+  description: string;
+  maxCapacity: number;      // DB: max_people
+  durationMinutes: number;  // DB: duration_minutes
+  offsetMinutes: number;    // DB: setup_minutes
+  color: string;            // UI Only
+  isActive: boolean;        // Inferred
+  startDate: string;        // DB: valid_from
+  endDate: string;          // DB: valid_until
+  timeIntervals: TimeInterval[]; // DB: experience_schedules
+}
+
+export interface DaySchedule {
+  date: string;
+  isOpen: boolean;
+}
+
+export interface Booking {
+  id: string;
+  slotId: string;
+  experienceId: string;
+  date: string;
+  time: string;
+  pax: number;
+  originalPax: number;
+  visitorName: string;
+  visitorEmail: string;
+  attendeeNames: string[];
+  referenceCode: string;
+  checkedIn: boolean;
+  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+  guestIds?: string[]; // Added for Staff Check-in Logic
+}
+
+export interface Slot {
+  id: string; // UUID
+  experienceId: string;
+  startTime: Date;
+  endTime: Date;
+  maxCapacity: number;
+  currentBookings: number;
+  remainingCapacity: number;
+  status: 'OPEN' | 'PARTIAL' | 'FULL' | 'PASSED';
+  isBlocked: boolean; // Added for Admin
+}
+
+export interface SlotOption {
+  type: 'TOGETHER' | 'SPLIT';
+  description: string;
+  slots: {
+    slot: Slot;
+    paxToAssign: number;
+  }[];
+}
+
