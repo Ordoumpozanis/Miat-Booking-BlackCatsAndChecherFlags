@@ -92,8 +92,12 @@ export const storageService = {
     await supabase.from('experiences').delete().eq('id', id);
   },
 
+   
   // --- BOOKINGS (Admin/Staff) ---
   getBookings: async (): Promise<Booking[]> => {
+    // DEBUG: Log that we are starting the fetch
+    console.log("Fetching bookings...");
+
     const { data, error } = await supabase
       .from('bookings')
       .select(`
@@ -103,10 +107,15 @@ export const storageService = {
       `)
       .order('created_at', { ascending: false });
 
-    if (error) return [];
+    // DEBUG: Log the result
+    if (error) {
+        console.error("CRITICAL SUPABASE ERROR:", error);
+        return []; // This causes "Ticket not found"
+    }
+
+    console.log("Bookings found:", data?.length);
 
     return data.map((b: any) => {
-        // Sort guests by creation time to ensure consistent indexing for Staff Check-in
         const sortedGuests = (b.booking_guests || []).sort((x: any, y: any) => 
             new Date(x.created_at).getTime() - new Date(y.created_at).getTime()
         );
@@ -122,7 +131,7 @@ export const storageService = {
             visitorName: b.customer_name,
             visitorEmail: b.customer_email,
             attendeeNames: sortedGuests.map((g: any) => g.full_name),
-            guestIds: sortedGuests.map((g: any) => g.id), // Crucial for Check-in
+            guestIds: sortedGuests.map((g: any) => g.id),
             referenceCode: b.booking_reference,
             checkedIn: sortedGuests.some((g: any) => g.check_in_status === 'ARRIVED'),
             status: b.status,
