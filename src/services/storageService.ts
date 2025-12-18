@@ -139,6 +139,18 @@ export const storageService = {
     });
   },
 
+  // NEW: Validate without checking in
+  validateTicket: async (bookingId: string) => {
+    const { data, error } = await supabase.rpc('staff_validate_ticket', {
+        p_booking_id: bookingId
+    });
+    
+    // If the DB throws "Too Early" or "Expired", it comes back as an error here
+    if (error) throw new Error(error.message);
+    
+    return data;
+  },
+  
   // --- STAFF ACTIONS ---
   processCheckIn: async (bookingId: string, arrivedGuestIds: string[]) => {
     const { data, error } = await supabase.rpc('staff_process_checkin', {

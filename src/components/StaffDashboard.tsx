@@ -14,11 +14,13 @@ export const StaffDashboard: React.FC = () => {
   const [manualCode, setManualCode] = useState('');
   const [confirmedResult, setConfirmedResult] = useState<{ message: string; count: number } | null>(null);
 
+  // ... inside StaffDashboard component ...
+
   const processCode = async (dataStr: string) => {
     try {
+      // 1. Parse Code from QR or Manual Input
       let bookingId: string | undefined;
       let refCode: string;
-
       try {
         const data = JSON.parse(dataStr);
         bookingId = typeof data?.id === 'string' ? data.id : undefined;
@@ -27,8 +29,8 @@ export const StaffDashboard: React.FC = () => {
         refCode = String(dataStr).toUpperCase().trim();
       }
 
+      // 2. Find Locally (Fast Lookup)
       const bookings = await Promise.resolve(storageService.getBookings());
-
       let match: Booking | undefined;
       if (bookingId) {
         match = bookings.find((b) => b.id === bookingId);
@@ -37,15 +39,30 @@ export const StaffDashboard: React.FC = () => {
       }
 
       if (match) {
-        setConfirmedResult(null);
-        setPendingBooking(match);
-
-        const allIndices = new Set<number>();
-        (match.attendeeNames ?? []).forEach((_, idx) => allIndices.add(idx));
-        setAttendance(allIndices);
-
-        setScanStatus('idle');
-        setErrorMessage('');
+        // 3. IMMEDIATE SERVER VALIDATION
+        // We ask the DB: "Is this ticket allowed at this exact second?"
+        try {
+            await storageService.validateTicket(match.id);
+            
+            // --- IF SUCCESSFUL (VALID) ---
+            setConfirmedResult(null);
+            setPendingBooking(match);
+            
+            // Auto-select all guests by default
+            const allIndices = new Set<number>();
+            (match.attendeeNames ?? []).forEach((_, idx) => allIndices.add(idx));
+            setAttendance(allIndices);
+            
+            setScanStatus('idle');
+            setErrorMessage('');
+            
+        } catch (validationErr: any) {
+            // --- IF FAILED (TOO EARLY / EXPIRED) ---
+            setScanStatus('error');
+            // The DB error message (e.g., "Too Early. Check-in opens at 14:15") is displayed directly
+            setErrorMessage(validationErr.message || 'Ticket Invalid');
+            setPendingBooking(null);
+        }
       } else {
         setScanStatus('error');
         setErrorMessage('Ticket Not Found');
