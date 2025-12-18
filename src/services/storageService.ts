@@ -6,6 +6,14 @@ import { Experience, Booking, DaySchedule } from '../types';
 export const storageService = {
   // --- EXPERIENCES (Admin) ---
  
+  toggleSlotBlock: async (slotId: string, shouldBlock: boolean) => {
+    const { error } = await supabase.rpc('admin_toggle_slot_block', {
+      p_slot_id: slotId,
+      p_should_block: shouldBlock
+    });
+
+    if (error) throw new Error(error.message);
+  },
   
   getExperiences: async (): Promise<Experience[]> => {
     // 1. Fetch Experiences
@@ -70,19 +78,24 @@ export const storageService = {
 
     if (savedExp) {
       // (Schedule saving logic remains the same...)
-      await supabase.from('experience_schedules').delete().eq('experience_id', savedExp.id);
+      await supabase.from('experience_schedules').delete().eq('experience_id', savedExp.id);      
       
+     // 2. Prepare new payload
       const schedPayload = exp.timeIntervals.map((t) => ({
         experience_id: savedExp.id,
         start_time: t.startTime,
         end_time: t.endTime,
       }));
 
+      // 3. Insert NEW schedules
       if (schedPayload.length > 0) {
-        await supabase.from('experience_schedules').insert(schedPayload);
+        const { error: schedError } = await supabase.from('experience_schedules').insert(schedPayload);
+        if (schedError) throw new Error("Schedule Insert Error: " + schedError.message);
       }
       
-      await supabase.rpc('generate_slots_for_experience', { target_experience_id: savedExp.id });
+      // 4. TRIGGER GENERATOR (This now uses the new SQL logic)
+      const { error: rpcError } = await supabase.rpc('generate_slots_for_experience', { target_experience_id: savedExp.id });
+      if (rpcError) console.error("Slot Generation Error:", rpcError);
     }
   },
 
@@ -158,6 +171,11 @@ export const storageService = {
 
     if (error) throw new Error(error.message);
     return data; // { success: true, new_party_size: N }
+  },
+  // --- DANGER ZONE ---
+  resetSystem: async () => {
+    const { error } = await supabase.rpc('admin_reset_system');
+    if (error) throw new Error(error.message);
   },
 
   // Legacy Stub

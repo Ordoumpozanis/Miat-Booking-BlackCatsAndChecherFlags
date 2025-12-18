@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Lock, Unlock, AlertOctagon, RotateCcw, AlertTriangle, X} from 'lucide-react'; // Added icons
 import { Experience, TimeInterval } from '../types';
 import { storageService } from '../services/storageService';
 import { bookingService } from '../services/bookingService';
@@ -17,9 +17,11 @@ export const AdminDashboard: React.FC = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotsError, setSlotsError] = useState<string>('');
 
+   
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  
   const selectedExp = useMemo(() => experiences.find((e) => e.id === selectedExpId) ?? null, [experiences, selectedExpId]);
-
-
 
   useEffect(() => {
     void refreshData();
@@ -39,50 +41,85 @@ export const AdminDashboard: React.FC = () => {
     });
   };
 
-const loadSlotsForSelected = async () => {
-  if (activeTab !== 'schedule') return;
+  const loadSlotsForSelected = async () => {
+    if (activeTab !== 'schedule') return;
 
-  if (!selectedExpId) {
-    setSlots([]);
-    return;
-  }
-
-  setLoadingSlots(true);
-  setSlotsError('');
-
-  try {
-    // IMPORTANT: fetch the latest experience from DB so slot times reflect edits
-    const freshExps = await storageService.getExperiences();
-    const freshExp = freshExps.find((e) => e.id === selectedExpId);
-
-    if (!freshExp) {
+    if (!selectedExpId) {
       setSlots([]);
       return;
     }
 
-    const result = await bookingService.generateSlotsForDateAsync(freshExp, selectedDate);
-    setSlots(result as any[]);
-  } catch (e: any) {
-    setSlots([]);
-    setSlotsError(e?.message ?? 'Failed to load slots');
-  } finally {
-    setLoadingSlots(false);
-  }
-};
+    setLoadingSlots(true);
+    setSlotsError('');
 
+    try {
+      const freshExps = await storageService.getExperiences();
+      const freshExp = freshExps.find((e) => e.id === selectedExpId);
 
+      if (!freshExp) {
+        setSlots([]);
+        return;
+      }
+
+      // This fetches slots (including isBlocked status)
+      const result = await bookingService.generateSlotsForDateAsync(freshExp, selectedDate);
+      setSlots(result as any[]);
+    } catch (e: any) {
+      setSlots([]);
+      setSlotsError(e?.message ?? 'Failed to load slots');
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  // --- NEW: Toggle Block Status ---
+  const handleToggleBlock = async (slotId: string, currentStatus: boolean) => {
+    try {
+      // Optimistic UI update (optional, but makes it snappy)
+      setSlots((prev) => 
+        prev.map(s => s.id === slotId ? { ...s, isBlocked: !currentStatus } : s)
+      );
+
+      // Call DB
+      await storageService.toggleSlotBlock(slotId, !currentStatus);
+      
+      // Reload to ensure sync
+      await loadSlotsForSelected();
+    } catch (e: any) {
+      alert("Error updating slot: " + e.message);
+      void loadSlotsForSelected(); // Revert on error
+    }
+  };
+
+  const handleSystemReset = async () => {
+    setIsResetting(true);
+    try {
+        await storageService.resetSystem();
+        // Clear local state immediately
+        setExperiences([]);
+        setSlots([]);
+        setSelectedExpId('');
+        setShowResetModal(false);
+        alert("System has been successfully reset.");
+        await refreshData(); // Will likely return empty
+    } catch (e: any) {
+        alert("Reset Failed: " + e.message);
+    } finally {
+        setIsResetting(false);
+    }
+  };
+  
   useEffect(() => {
     void loadSlotsForSelected();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, selectedExpId, selectedDate]);
 
- // Find handleInitDefaults and replace with:
   const handleInitDefaults = async () => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const nextYear = format(new Date(new Date().setFullYear(new Date().getFullYear() + 1)), 'yyyy-MM-dd');
 
     const ex1: Experience = {
-      id: '', // Leave empty to create new UUID
+      id: '', 
       name: 'The Pit Lane',
       description: 'Interactive Multiplayer',
       timezone: 'Europe/Rome',
@@ -97,7 +134,7 @@ const loadSlotsForSelected = async () => {
     };
 
     const ex2: Experience = {
-      id: '', // Leave empty to create new UUID
+      id: '', 
       name: 'The Prophecy',
       description: 'Cinematic VR',
       timezone: 'Europe/Rome',
@@ -174,6 +211,14 @@ const loadSlotsForSelected = async () => {
             }`}
           >
             Calendar
+          </button>
+
+          {/* --- NEW: RESET BUTTON ADDED HERE --- */}
+          <button
+            onClick={() => setShowResetModal(true)}
+            className="px-6 py-2 text-sm font-bold uppercase tracking-widest border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-all flex items-center gap-2 ml-4"
+          >
+            <RotateCcw className="w-4 h-4" /> Reset
           </button>
         </div>
       </div>
@@ -253,7 +298,7 @@ const loadSlotsForSelected = async () => {
             ) : slotsError ? (
               <div className="p-12 text-center text-red-400 font-mono uppercase">{slotsError}</div>
             ) : slots.length === 0 ? (
-              <div className="p-12 text-center text-neutral-500 font-mono uppercase">No slots available</div>
+              <div className="p-12 text-center text-neutral-500 font-mono uppercase">No slots available for this date</div>
             ) : (
               <table className="w-full text-left border-collapse text-white">
                 <thead className="bg-white text-black text-[10px] font-bold uppercase tracking-widest">
@@ -261,38 +306,116 @@ const loadSlotsForSelected = async () => {
                     <th className="p-3">Time</th>
                     <th className="p-3">Status</th>
                     <th className="p-3 text-center">Load</th>
-                    <th className="p-3"></th>
+                    <th className="p-3">Capacity</th>
+                    <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-800">
-                  {slots.map((slot: any) => (
-                    <tr key={slot.id} className="hover:bg-neutral-800 font-mono text-sm">
-                      <td className="p-3 font-bold">
-                        {(slot.startTime as Date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="p-3 uppercase text-xs">{slot.status}</td>
-                      <td className="p-3 text-center">
-                        {slot.currentBookings}/{slot.maxCapacity}
-                      </td>
-                      <td className="p-3">
-                        <div className="w-full bg-neutral-800 h-2">
-                          <div
-                            className={`h-full ${slot.status === 'FULL' ? 'bg-red-600' : 'bg-yellow-400'}`}
-                            style={{ width: `${(slot.currentBookings / slot.maxCapacity) * 100}%` }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {slots.map((slot: any) => {
+                    // Visual state for blocked slots
+                    const rowClass = slot.isBlocked 
+                        ? 'bg-[repeating-linear-gradient(45deg,#262626,#262626_10px,#171717_10px,#171717_20px)] text-neutral-500' 
+                        : 'hover:bg-neutral-800';
+
+                    return (
+                        <tr key={slot.id} className={`${rowClass} font-mono text-sm transition-colors`}>
+                        <td className="p-3 font-bold">
+                            {slot.formattedTime}
+                        </td>
+                        <td className="p-3 uppercase text-xs">
+                            {slot.isBlocked ? (
+                                <span className="text-red-500 font-bold flex items-center gap-1">
+                                    <AlertOctagon className="w-3 h-3" /> BLOCKED
+                                </span>
+                            ) : (
+                                slot.status
+                            )}
+                        </td>
+                        <td className="p-3 text-center">
+                            {slot.currentBookings}/{slot.maxCapacity}
+                        </td>
+                        <td className="p-3">
+                            <div className="w-full bg-neutral-800 h-2">
+                            <div
+                                className={`h-full ${slot.status === 'FULL' || slot.isBlocked ? 'bg-red-600' : 'bg-yellow-400'}`}
+                                style={{ width: `${slot.isBlocked ? 100 : (slot.currentBookings / slot.maxCapacity) * 100}%` }}
+                            />
+                            </div>
+                        </td>
+                        <td className="p-3 text-right">
+                            <button
+                                onClick={() => handleToggleBlock(slot.id, slot.isBlocked)}
+                                title={slot.isBlocked ? "Unblock Slot" : "Block Slot"}
+                                className={`p-2 border transition-all ${
+                                    slot.isBlocked 
+                                    ? 'border-green-600 text-green-500 hover:bg-green-600 hover:text-white' 
+                                    : 'border-neutral-600 text-neutral-400 hover:border-red-500 hover:text-red-500'
+                                }`}
+                            >
+                                {slot.isBlocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                            </button>
+                        </td>
+                        </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
           </div>
         </div>
       )}
+      {/* --- NEW: RESET CONFIRMATION MODAL --- */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="w-full max-w-md bg-neutral-900 border-4 border-red-600 shadow-[0_0_50px_rgba(220,38,38,0.4)] relative">
+                <button 
+                    onClick={() => setShowResetModal(false)}
+                    className="absolute top-4 right-4 text-neutral-500 hover:text-white"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+
+                <div className="p-8 text-center">
+                    <div className="flex justify-center mb-6">
+                        <div className="p-4 bg-red-600/20 rounded-full border-2 border-red-600">
+                            <AlertTriangle className="w-12 h-12 text-red-600" />
+                        </div>
+                    </div>
+                    
+                    <h3 className="text-3xl font-maxwell font-bold uppercase text-white mb-4">Factory Reset</h3>
+                    
+                    <p className="text-neutral-300 text-sm mb-2 font-bold">
+                        DANGER: THIS ACTION IS IRREVERSIBLE.
+                    </p>
+                    <p className="text-neutral-400 text-sm mb-8 leading-relaxed">
+                        You are about to delete <strong className="text-white">ALL</strong> Experiences, Bookings, Guest Lists, and Schedules. 
+                        The system will be completely wiped clean for a new exhibition.
+                    </p>
+
+                    <div className="flex flex-col gap-3">
+                        <button 
+                            onClick={handleSystemReset}
+                            disabled={isResetting}
+                            className="w-full bg-red-600 text-white font-bold uppercase py-4 tracking-widest hover:bg-red-700 disabled:opacity-50 transition-colors shadow-[4px_4px_0px_0px_#fff] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+                        >
+                            {isResetting ? 'Wiping Data...' : 'Confirm System Wipe'}
+                        </button>
+                        
+                        <button 
+                            onClick={() => setShowResetModal(false)}
+                            className="w-full border-2 border-white text-white font-bold uppercase py-3 hover:bg-white hover:text-black transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 const ExperienceCard: React.FC<{ experience: Experience; onDelete: () => void; onUpdate: () => void }> = ({
   experience,

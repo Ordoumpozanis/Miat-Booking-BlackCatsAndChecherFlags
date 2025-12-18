@@ -8,7 +8,8 @@ import { toZonedTime, format as formatTz } from 'date-fns-tz';
 export const bookingService = {
   
   // 1. GET SLOTS via RPC
- generateSlotsForDateAsync: async (experience: Experience, dateStr: string): Promise<Slot[]> => {
+// 1. GET SLOTS via RPC
+  generateSlotsForDateAsync: async (experience: Experience, dateStr: string): Promise<Slot[]> => {
     const { data: slots, error } = await supabase.rpc('get_public_availability', {
       p_experience_id: experience.id,
       p_date: dateStr
@@ -16,38 +17,38 @@ export const bookingService = {
 
     if (error || !slots) return [];
 
-    // The current time in the EXHIBITION'S timezone
     const nowOnLocation = toZonedTime(new Date(), experience.timezone);
     const timeOnLocationStr = formatTz(nowOnLocation, 'HH:mm', { timeZone: experience.timezone });
 
     return slots.map((s: any) => {
-      // 1. Create a "Floating" Date Object (The raw time)
-      // We parse the string "2025-07-12T10:00" directly.
       const rawIsoString = `${dateStr}T${s.start_time}`;
       const startT = parseISO(rawIsoString);
       const endT = parseISO(`${dateStr}T${s.end_time}`);
       
       const filled = Number(s.current_load);
-      const remaining = s.max_capacity - filled;
+      // Default math: Capacity - Filled
+      let remaining = s.max_capacity - filled;
       
       let status: Slot['status'] = 'OPEN';
       
-      // 2. Logic: Compare Wall Time Strings to avoid timezone math errors
-      // If today is the selected date, we compare HH:mm strings
       const isToday = dateStr === formatTz(nowOnLocation, 'yyyy-MM-dd', { timeZone: experience.timezone });
       const slotTimeStr = String(s.start_time).slice(0, 5);
 
-      if (s.is_blocked) status = 'FULL'; 
-      else if (isToday && slotTimeStr < timeOnLocationStr) status = 'PASSED'; // Simple string comparison
+      // --- LOGIC UPDATE ---
+      if (s.is_blocked) {
+          status = 'FULL';
+          remaining = 0; // FORCE ZERO so the UI disables the button
+      }
+      else if (isToday && slotTimeStr < timeOnLocationStr) status = 'PASSED';
       else if (remaining <= 0) status = 'FULL';
       else if (filled > 0) status = 'PARTIAL';
 
       return {
         id: s.slot_id,
         experienceId: experience.id,
-        startTime: startT, // Keep Date obj for internal logic
+        startTime: startT,
         endTime: endT,
-        formattedTime: slotTimeStr, // NEW: Use this for display
+        formattedTime: slotTimeStr,
         maxCapacity: s.max_capacity,
         currentBookings: filled,
         remainingCapacity: Math.max(0, remaining),

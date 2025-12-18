@@ -23,6 +23,7 @@ import { bookingService } from '../services/bookingService';
 import { generateQRImage } from './TicketPDF';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { TermsOfUse } from './TermsOfUse';
 
 export const VisitorBooking: React.FC = () => {
   // Scene Control
@@ -53,6 +54,7 @@ export const VisitorBooking: React.FC = () => {
   const [cError, setCError] = useState('');
   const [cLoading, setCLoading] = useState(false);
   const [ticketToCancel, setTicketToCancel] = useState<any>(null);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // 1. Load Experiences
   useEffect(() => {
@@ -817,8 +819,19 @@ export const VisitorBooking: React.FC = () => {
             className="text-sm font-medium leading-relaxed cursor-pointer select-none text-neutral-300"
             onClick={() => setAgreedToTerms(!agreedToTerms)}
           >
-            <span className="font-bold uppercase block mb-1 text-white">Email Consent</span>I agree to provide my email address which
-            will be used only for booking confirmation.
+            <span className="font-bold uppercase block mb-1 text-white">Email Consent</span>
+            I agree to provide my email address which will be used only for booking confirmation.
+            
+            {/* --- THIS IS THE LINK YOU ASKED FOR --- */}
+            <a 
+                onClick={(e) => {
+                    e.stopPropagation(); // Prevents the checkbox from toggling when clicking the link
+                    setShowPrivacyModal(true);
+                }}
+                className="text-yellow-400 underline ml-2 hover:text-white transition-colors relative z-10"
+            >
+                Learn More
+            </a>
           </p>
         </div>
 
@@ -832,11 +845,18 @@ export const VisitorBooking: React.FC = () => {
           <button
             disabled={!agreedToTerms}
             onClick={handleValidationSubmit}
-            className="w-2/3 bg-red-600 text-white !font-revolution  font-bold uppercase text-lg tracking-widest py-5 hover:bg-white hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[8px_8px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#fff] transition-all"
+            className="w-2/3 bg-red-600 text-white !font-revolution font-bold uppercase text-lg tracking-widest py-5 hover:bg-white hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[8px_8px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#fff] transition-all"
           >
             Authorize Entry
           </button>
         </div>
+
+        {/* --- THIS IS WHERE THE COMPONENT IS PLACED --- */}
+        <TermsOfUse 
+            isOpen={showPrivacyModal} 
+            onClose={() => setShowPrivacyModal(false)} 
+        />
+        
       </div>
     );
   }
