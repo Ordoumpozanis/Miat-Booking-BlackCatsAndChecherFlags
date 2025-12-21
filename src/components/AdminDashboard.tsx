@@ -120,32 +120,32 @@ export const AdminDashboard: React.FC = () => {
 
     const ex1: Experience = {
       id: '', 
-      name: 'The Pit Lane',
-      description: 'Interactive Multiplayer',
+      name: ' Immersive Experience',
+      description: 'COLLABORATIVE EXPERIENCE',
       timezone: 'Europe/Rome',
       maxCapacity: 4,
-      durationMinutes: 45,
+      durationMinutes: 30,
       offsetMinutes: 15,
       color: 'bg-blue-600',
       isActive: true,
       startDate: today,
       endDate: nextYear,
-      timeIntervals: [{ startTime: '09:00', endTime: '18:00' }],
+      timeIntervals: [{ startTime: '09:00', endTime: '15:30' }],
     };
 
     const ex2: Experience = {
       id: '', 
-      name: 'The Prophecy',
-      description: 'Cinematic VR',
+      name: 'VR Experience',
+      description: 'SINGLE USER EXPERIENCE',
       timezone: 'Europe/Rome',
       maxCapacity: 12,
-      durationMinutes: 15,
+      durationMinutes: 20,
       offsetMinutes: 10,
       color: 'bg-emerald-600',
       isActive: true,
       startDate: today,
       endDate: nextYear,
-      timeIntervals: [{ startTime: '10:00', endTime: '20:00' }],
+      timeIntervals: [{ startTime: '09:30', endTime: '15:30' }],
     };
 
     try {

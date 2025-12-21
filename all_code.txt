@@ -264,7 +264,7 @@ export default function StaffPage() {
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Lock, Unlock, AlertOctagon, RotateCcw, AlertTriangle, X} from 'lucide-react'; // Added icons
 import { Experience, TimeInterval } from '../types';
 import { storageService } from '../services/storageService';
 import { bookingService } from '../services/bookingService';
@@ -280,9 +280,11 @@ export const AdminDashboard: React.FC = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotsError, setSlotsError] = useState<string>('');
 
+   
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  
   const selectedExp = useMemo(() => experiences.find((e) => e.id === selectedExpId) ?? null, [experiences, selectedExpId]);
-
-
 
   useEffect(() => {
     void refreshData();
@@ -302,50 +304,85 @@ export const AdminDashboard: React.FC = () => {
     });
   };
 
-const loadSlotsForSelected = async () => {
-  if (activeTab !== 'schedule') return;
+  const loadSlotsForSelected = async () => {
+    if (activeTab !== 'schedule') return;
 
-  if (!selectedExpId) {
-    setSlots([]);
-    return;
-  }
-
-  setLoadingSlots(true);
-  setSlotsError('');
-
-  try {
-    // IMPORTANT: fetch the latest experience from DB so slot times reflect edits
-    const freshExps = await storageService.getExperiences();
-    const freshExp = freshExps.find((e) => e.id === selectedExpId);
-
-    if (!freshExp) {
+    if (!selectedExpId) {
       setSlots([]);
       return;
     }
 
-    const result = await bookingService.generateSlotsForDateAsync(freshExp, selectedDate);
-    setSlots(result as any[]);
-  } catch (e: any) {
-    setSlots([]);
-    setSlotsError(e?.message ?? 'Failed to load slots');
-  } finally {
-    setLoadingSlots(false);
-  }
-};
+    setLoadingSlots(true);
+    setSlotsError('');
 
+    try {
+      const freshExps = await storageService.getExperiences();
+      const freshExp = freshExps.find((e) => e.id === selectedExpId);
 
+      if (!freshExp) {
+        setSlots([]);
+        return;
+      }
+
+      // This fetches slots (including isBlocked status)
+      const result = await bookingService.generateSlotsForDateAsync(freshExp, selectedDate);
+      setSlots(result as any[]);
+    } catch (e: any) {
+      setSlots([]);
+      setSlotsError(e?.message ?? 'Failed to load slots');
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  // --- NEW: Toggle Block Status ---
+  const handleToggleBlock = async (slotId: string, currentStatus: boolean) => {
+    try {
+      // Optimistic UI update (optional, but makes it snappy)
+      setSlots((prev) => 
+        prev.map(s => s.id === slotId ? { ...s, isBlocked: !currentStatus } : s)
+      );
+
+      // Call DB
+      await storageService.toggleSlotBlock(slotId, !currentStatus);
+      
+      // Reload to ensure sync
+      await loadSlotsForSelected();
+    } catch (e: any) {
+      alert("Error updating slot: " + e.message);
+      void loadSlotsForSelected(); // Revert on error
+    }
+  };
+
+  const handleSystemReset = async () => {
+    setIsResetting(true);
+    try {
+        await storageService.resetSystem();
+        // Clear local state immediately
+        setExperiences([]);
+        setSlots([]);
+        setSelectedExpId('');
+        setShowResetModal(false);
+        alert("System has been successfully reset.");
+        await refreshData(); // Will likely return empty
+    } catch (e: any) {
+        alert("Reset Failed: " + e.message);
+    } finally {
+        setIsResetting(false);
+    }
+  };
+  
   useEffect(() => {
     void loadSlotsForSelected();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, selectedExpId, selectedDate]);
 
- // Find handleInitDefaults and replace with:
   const handleInitDefaults = async () => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const nextYear = format(new Date(new Date().setFullYear(new Date().getFullYear() + 1)), 'yyyy-MM-dd');
 
     const ex1: Experience = {
-      id: '', // Leave empty to create new UUID
+      id: '', 
       name: 'The Pit Lane',
       description: 'Interactive Multiplayer',
       timezone: 'Europe/Rome',
@@ -360,7 +397,7 @@ const loadSlotsForSelected = async () => {
     };
 
     const ex2: Experience = {
-      id: '', // Leave empty to create new UUID
+      id: '', 
       name: 'The Prophecy',
       description: 'Cinematic VR',
       timezone: 'Europe/Rome',
@@ -437,6 +474,14 @@ const loadSlotsForSelected = async () => {
             }`}
           >
             Calendar
+          </button>
+
+          {/* --- NEW: RESET BUTTON ADDED HERE --- */}
+          <button
+            onClick={() => setShowResetModal(true)}
+            className="px-6 py-2 text-sm font-bold uppercase tracking-widest border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-all flex items-center gap-2 ml-4"
+          >
+            <RotateCcw className="w-4 h-4" /> Reset
           </button>
         </div>
       </div>
@@ -516,7 +561,7 @@ const loadSlotsForSelected = async () => {
             ) : slotsError ? (
               <div className="p-12 text-center text-red-400 font-mono uppercase">{slotsError}</div>
             ) : slots.length === 0 ? (
-              <div className="p-12 text-center text-neutral-500 font-mono uppercase">No slots available</div>
+              <div className="p-12 text-center text-neutral-500 font-mono uppercase">No slots available for this date</div>
             ) : (
               <table className="w-full text-left border-collapse text-white">
                 <thead className="bg-white text-black text-[10px] font-bold uppercase tracking-widest">
@@ -524,38 +569,116 @@ const loadSlotsForSelected = async () => {
                     <th className="p-3">Time</th>
                     <th className="p-3">Status</th>
                     <th className="p-3 text-center">Load</th>
-                    <th className="p-3"></th>
+                    <th className="p-3">Capacity</th>
+                    <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-800">
-                  {slots.map((slot: any) => (
-                    <tr key={slot.id} className="hover:bg-neutral-800 font-mono text-sm">
-                      <td className="p-3 font-bold">
-                        {(slot.startTime as Date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="p-3 uppercase text-xs">{slot.status}</td>
-                      <td className="p-3 text-center">
-                        {slot.currentBookings}/{slot.maxCapacity}
-                      </td>
-                      <td className="p-3">
-                        <div className="w-full bg-neutral-800 h-2">
-                          <div
-                            className={`h-full ${slot.status === 'FULL' ? 'bg-red-600' : 'bg-yellow-400'}`}
-                            style={{ width: `${(slot.currentBookings / slot.maxCapacity) * 100}%` }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {slots.map((slot: any) => {
+                    // Visual state for blocked slots
+                    const rowClass = slot.isBlocked 
+                        ? 'bg-[repeating-linear-gradient(45deg,#262626,#262626_10px,#171717_10px,#171717_20px)] text-neutral-500' 
+                        : 'hover:bg-neutral-800';
+
+                    return (
+                        <tr key={slot.id} className={`${rowClass} font-mono text-sm transition-colors`}>
+                        <td className="p-3 font-bold">
+                            {slot.formattedTime}
+                        </td>
+                        <td className="p-3 uppercase text-xs">
+                            {slot.isBlocked ? (
+                                <span className="text-red-500 font-bold flex items-center gap-1">
+                                    <AlertOctagon className="w-3 h-3" /> BLOCKED
+                                </span>
+                            ) : (
+                                slot.status
+                            )}
+                        </td>
+                        <td className="p-3 text-center">
+                            {slot.currentBookings}/{slot.maxCapacity}
+                        </td>
+                        <td className="p-3">
+                            <div className="w-full bg-neutral-800 h-2">
+                            <div
+                                className={`h-full ${slot.status === 'FULL' || slot.isBlocked ? 'bg-red-600' : 'bg-yellow-400'}`}
+                                style={{ width: `${slot.isBlocked ? 100 : (slot.currentBookings / slot.maxCapacity) * 100}%` }}
+                            />
+                            </div>
+                        </td>
+                        <td className="p-3 text-right">
+                            <button
+                                onClick={() => handleToggleBlock(slot.id, slot.isBlocked)}
+                                title={slot.isBlocked ? "Unblock Slot" : "Block Slot"}
+                                className={`p-2 border transition-all ${
+                                    slot.isBlocked 
+                                    ? 'border-green-600 text-green-500 hover:bg-green-600 hover:text-white' 
+                                    : 'border-neutral-600 text-neutral-400 hover:border-red-500 hover:text-red-500'
+                                }`}
+                            >
+                                {slot.isBlocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                            </button>
+                        </td>
+                        </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
           </div>
         </div>
       )}
+      {/* --- NEW: RESET CONFIRMATION MODAL --- */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="w-full max-w-md bg-neutral-900 border-4 border-red-600 shadow-[0_0_50px_rgba(220,38,38,0.4)] relative">
+                <button 
+                    onClick={() => setShowResetModal(false)}
+                    className="absolute top-4 right-4 text-neutral-500 hover:text-white"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+
+                <div className="p-8 text-center">
+                    <div className="flex justify-center mb-6">
+                        <div className="p-4 bg-red-600/20 rounded-full border-2 border-red-600">
+                            <AlertTriangle className="w-12 h-12 text-red-600" />
+                        </div>
+                    </div>
+                    
+                    <h3 className="text-3xl font-maxwell font-bold uppercase text-white mb-4">Factory Reset</h3>
+                    
+                    <p className="text-neutral-300 text-sm mb-2 font-bold">
+                        DANGER: THIS ACTION IS IRREVERSIBLE.
+                    </p>
+                    <p className="text-neutral-400 text-sm mb-8 leading-relaxed">
+                        You are about to delete <strong className="text-white">ALL</strong> Experiences, Bookings, Guest Lists, and Schedules. 
+                        The system will be completely wiped clean for a new exhibition.
+                    </p>
+
+                    <div className="flex flex-col gap-3">
+                        <button 
+                            onClick={handleSystemReset}
+                            disabled={isResetting}
+                            className="w-full bg-red-600 text-white font-bold uppercase py-4 tracking-widest hover:bg-red-700 disabled:opacity-50 transition-colors shadow-[4px_4px_0px_0px_#fff] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+                        >
+                            {isResetting ? 'Wiping Data...' : 'Confirm System Wipe'}
+                        </button>
+                        
+                        <button 
+                            onClick={() => setShowResetModal(false)}
+                            className="w-full border-2 border-white text-white font-bold uppercase py-3 hover:bg-white hover:text-black transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };
+
 
 const ExperienceCard: React.FC<{ experience: Experience; onDelete: () => void; onUpdate: () => void }> = ({
   experience,
@@ -1447,6 +1570,134 @@ export const StaffDashboard: React.FC = () => {
   );
 };
 
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\TermsOfUse.tsx ===
+'use client';
+
+import React from 'react';
+import { X } from 'lucide-react';
+
+interface TermsOfUseProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const TermsOfUse: React.FC<TermsOfUseProps> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-2xl bg-neutral-900 border-2 border-white relative shadow-[0_0_50px_rgba(250,204,21,0.2)] flex flex-col max-h-[85vh]">
+        
+        {/* Header */}
+        <div className="p-6 border-b border-neutral-700 flex justify-between items-center bg-black">
+          <h3 className="text-2xl font-maxwell font-bold uppercase text-yellow-400">Privacy Notice (GDPR)</h3>
+          <button 
+            onClick={onClose}
+            className="text-neutral-500 hover:text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="p-8 overflow-y-auto text-left space-y-6 text-neutral-300 text-sm leading-relaxed pr-4 custom-scrollbar">
+          
+          <div>
+            <p className="font-bold text-white">Black Cats and Chequered Flags – Booking System</p>
+            <p>Website: blackcatsandchequeredflags.com</p>
+            <p>Data Controller: <span className="font-bold text-white">MIAT</span> (“we”, “us”)</p>
+            <p>Last updated: <span className="font-bold text-white">December 18, 2025</span></p>
+            <p className="mt-2">This Privacy Notice explains how MIAT processes personal data when you make a booking for the VR artwork experience “Black Cats and Checker flags”.</p>
+          </div>
+
+          <hr className="border-neutral-800" />
+
+          <div>
+            <h4 className="text-lg font-bold text-white mb-2">1) What data we collect</h4>
+            <p className="mb-2">When you book, we may collect:</p>
+            <ul className="list-disc pl-5 space-y-1 mb-2">
+              <li><strong className="text-white">A. Booking and ticket validation:</strong> Email address, Name (the person making the booking), Booking details (date/time slot, ticket count, status).</li>
+              <li><strong className="text-white">B. Participant names:</strong> Names of participants so our staff can greet you at the entrance.</li>
+            </ul>
+            <p className="italic text-neutral-500">We do not intentionally collect “special category” data (e.g., health data, biometric data, political opinions).</p>
+          </div>
+
+          <div>
+            <h4 className="text-lg font-bold text-white mb-2">2) Why we use your data (purposes)</h4>
+            <ol className="list-decimal pl-5 space-y-1">
+              <li><strong>Create and manage your booking</strong> (confirmations, changes, cancellations).</li>
+              <li><strong>Validate tickets at the door</strong> and manage admission.</li>
+              <li><strong>Greet participants</strong> using the provided names.</li>
+              <li><strong>Produce non-identifying statistics</strong> after the exhibition.</li>
+            </ol>
+            <p className="mt-2">We do <strong className="text-white">not</strong> sell your personal data. We do <strong className="text-white">not</strong> use booking emails for marketing unless you separately opt in.</p>
+          </div>
+
+          <div>
+            <h4 className="text-lg font-bold text-white mb-2">3) Legal bases (GDPR)</h4>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong className="text-white">Contract (GDPR Art. 6(1)(b)):</strong> to provide the booking and ticket validation you request.</li>
+              <li><strong className="text-white">Legitimate interests (GDPR Art. 6(1)(f)):</strong> operational needs (preventing duplicates, service integrity) and anonymized statistics.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-lg font-bold text-white mb-2">4) Where your data is stored</h4>
+            <p>Your booking data is stored in a database hosted by <strong className="text-white">Supabase</strong>. We limit access to authorized staff only. If transfers occur outside the EEA, appropriate safeguards are used.</p>
+          </div>
+
+          <div>
+            <h4 className="text-lg font-bold text-white mb-2">5) How long we keep your data</h4>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong className="text-white">During exhibition:</strong> Retained to operate bookings.</li>
+              <li><strong className="text-white">After exhibition:</strong> Deleted or anonymized as soon as operationally possible, no later than 30 days after the final day, unless required for legal/tax obligations.</li>
+              <li><strong className="text-white">Backups:</strong> Encrypted backups retained for a limited period before rotation.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-lg font-bold text-white mb-2">6) Your rights</h4>
+            <p>Under GDPR, you have the right to access, correct, delete, restrict processing, object to processing, and data portability. You may also lodge a complaint with your local data protection authority.</p>
+          </div>
+
+          <div>
+            <h4 className="text-lg font-bold text-white mb-2">7) Deletion on demand</h4>
+            <p className="mb-2">To request deletion, email us:</p>
+            <div className="bg-black border border-neutral-700 p-3 font-mono text-xs">
+              <p>Email: <span className="text-yellow-400">chiara.marchesi@miat.tech</span></p>
+              <p>Subject: “GDPR Deletion Request – Black Cats and Chequered Flags”</p>
+            </div>
+            <p className="mt-2 text-xs text-neutral-400"><strong>Important:</strong> If you request deletion before your visit, your booking may be cancelled as we cannot validate admission without data.</p>
+          </div>
+
+          <div>
+            <h4 className="text-lg font-bold text-white mb-2">8) Security</h4>
+            <p>We take reasonable technical and organizational measures to protect your data. No system is 100% secure, but we design the flow to minimize risk.</p>
+          </div>
+
+          <div>
+            <h4 className="text-lg font-bold text-white mb-2">9) Contact</h4>
+            <p>Data Controller: <strong className="text-white">MIAT</strong></p>
+            <p>Email: <a href="mailto:chiara.marchesi@miat.tech" className="text-yellow-400 hover:underline">chiara.marchesi@miat.tech</a></p>
+            <p>Address: Via Alessandro Manzoni, 12 20121 Milan - Italy</p>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-neutral-700 bg-black flex justify-end">
+          <button 
+            onClick={onClose}
+            className="bg-white text-black px-6 py-2 font-bold uppercase tracking-widest hover:bg-yellow-400 transition-colors text-sm"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 === D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\TicketPDF.ts ===
 import QRCode from 'qrcode';
 import { Booking } from '../types';
@@ -1717,6 +1968,7 @@ import { bookingService } from '../services/bookingService';
 import { generateQRImage } from './TicketPDF';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { TermsOfUse } from './TermsOfUse';
 
 export const VisitorBooking: React.FC = () => {
   // Scene Control
@@ -1747,6 +1999,7 @@ export const VisitorBooking: React.FC = () => {
   const [cError, setCError] = useState('');
   const [cLoading, setCLoading] = useState(false);
   const [ticketToCancel, setTicketToCancel] = useState<any>(null);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // 1. Load Experiences
   useEffect(() => {
@@ -2511,8 +2764,19 @@ export const VisitorBooking: React.FC = () => {
             className="text-sm font-medium leading-relaxed cursor-pointer select-none text-neutral-300"
             onClick={() => setAgreedToTerms(!agreedToTerms)}
           >
-            <span className="font-bold uppercase block mb-1 text-white">Email Consent</span>I agree to provide my email address which
-            will be used only for booking confirmation.
+            <span className="font-bold uppercase block mb-1 text-white">Email Consent</span>
+            I agree to provide my email address which will be used only for booking confirmation.
+            
+            {/* --- THIS IS THE LINK YOU ASKED FOR --- */}
+            <a 
+                onClick={(e) => {
+                    e.stopPropagation(); // Prevents the checkbox from toggling when clicking the link
+                    setShowPrivacyModal(true);
+                }}
+                className="text-yellow-400 underline ml-2 hover:text-white transition-colors relative z-10"
+            >
+                Learn More
+            </a>
           </p>
         </div>
 
@@ -2526,11 +2790,18 @@ export const VisitorBooking: React.FC = () => {
           <button
             disabled={!agreedToTerms}
             onClick={handleValidationSubmit}
-            className="w-2/3 bg-red-600 text-white !font-revolution  font-bold uppercase text-lg tracking-widest py-5 hover:bg-white hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[8px_8px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#fff] transition-all"
+            className="w-2/3 bg-red-600 text-white !font-revolution font-bold uppercase text-lg tracking-widest py-5 hover:bg-white hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[8px_8px_0px_0px_#fff] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#fff] transition-all"
           >
             Authorize Entry
           </button>
         </div>
+
+        {/* --- THIS IS WHERE THE COMPONENT IS PLACED --- */}
+        <TermsOfUse 
+            isOpen={showPrivacyModal} 
+            onClose={() => setShowPrivacyModal(false)} 
+        />
+        
       </div>
     );
   }
@@ -2625,7 +2896,8 @@ import { toZonedTime, format as formatTz } from 'date-fns-tz';
 export const bookingService = {
   
   // 1. GET SLOTS via RPC
- generateSlotsForDateAsync: async (experience: Experience, dateStr: string): Promise<Slot[]> => {
+// 1. GET SLOTS via RPC
+  generateSlotsForDateAsync: async (experience: Experience, dateStr: string): Promise<Slot[]> => {
     const { data: slots, error } = await supabase.rpc('get_public_availability', {
       p_experience_id: experience.id,
       p_date: dateStr
@@ -2633,38 +2905,38 @@ export const bookingService = {
 
     if (error || !slots) return [];
 
-    // The current time in the EXHIBITION'S timezone
     const nowOnLocation = toZonedTime(new Date(), experience.timezone);
     const timeOnLocationStr = formatTz(nowOnLocation, 'HH:mm', { timeZone: experience.timezone });
 
     return slots.map((s: any) => {
-      // 1. Create a "Floating" Date Object (The raw time)
-      // We parse the string "2025-07-12T10:00" directly.
       const rawIsoString = `${dateStr}T${s.start_time}`;
       const startT = parseISO(rawIsoString);
       const endT = parseISO(`${dateStr}T${s.end_time}`);
       
       const filled = Number(s.current_load);
-      const remaining = s.max_capacity - filled;
+      // Default math: Capacity - Filled
+      let remaining = s.max_capacity - filled;
       
       let status: Slot['status'] = 'OPEN';
       
-      // 2. Logic: Compare Wall Time Strings to avoid timezone math errors
-      // If today is the selected date, we compare HH:mm strings
       const isToday = dateStr === formatTz(nowOnLocation, 'yyyy-MM-dd', { timeZone: experience.timezone });
       const slotTimeStr = String(s.start_time).slice(0, 5);
 
-      if (s.is_blocked) status = 'FULL'; 
-      else if (isToday && slotTimeStr < timeOnLocationStr) status = 'PASSED'; // Simple string comparison
+      // --- LOGIC UPDATE ---
+      if (s.is_blocked) {
+          status = 'FULL';
+          remaining = 0; // FORCE ZERO so the UI disables the button
+      }
+      else if (isToday && slotTimeStr < timeOnLocationStr) status = 'PASSED';
       else if (remaining <= 0) status = 'FULL';
       else if (filled > 0) status = 'PARTIAL';
 
       return {
         id: s.slot_id,
         experienceId: experience.id,
-        startTime: startT, // Keep Date obj for internal logic
+        startTime: startT,
         endTime: endT,
-        formattedTime: slotTimeStr, // NEW: Use this for display
+        formattedTime: slotTimeStr,
         maxCapacity: s.max_capacity,
         currentBookings: filled,
         remainingCapacity: Math.max(0, remaining),
@@ -2761,6 +3033,14 @@ import { Experience, Booking, DaySchedule } from '../types';
 export const storageService = {
   // --- EXPERIENCES (Admin) ---
  
+  toggleSlotBlock: async (slotId: string, shouldBlock: boolean) => {
+    const { error } = await supabase.rpc('admin_toggle_slot_block', {
+      p_slot_id: slotId,
+      p_should_block: shouldBlock
+    });
+
+    if (error) throw new Error(error.message);
+  },
   
   getExperiences: async (): Promise<Experience[]> => {
     // 1. Fetch Experiences
@@ -2825,19 +3105,24 @@ export const storageService = {
 
     if (savedExp) {
       // (Schedule saving logic remains the same...)
-      await supabase.from('experience_schedules').delete().eq('experience_id', savedExp.id);
+      await supabase.from('experience_schedules').delete().eq('experience_id', savedExp.id);      
       
+     // 2. Prepare new payload
       const schedPayload = exp.timeIntervals.map((t) => ({
         experience_id: savedExp.id,
         start_time: t.startTime,
         end_time: t.endTime,
       }));
 
+      // 3. Insert NEW schedules
       if (schedPayload.length > 0) {
-        await supabase.from('experience_schedules').insert(schedPayload);
+        const { error: schedError } = await supabase.from('experience_schedules').insert(schedPayload);
+        if (schedError) throw new Error("Schedule Insert Error: " + schedError.message);
       }
       
-      await supabase.rpc('generate_slots_for_experience', { target_experience_id: savedExp.id });
+      // 4. TRIGGER GENERATOR (This now uses the new SQL logic)
+      const { error: rpcError } = await supabase.rpc('generate_slots_for_experience', { target_experience_id: savedExp.id });
+      if (rpcError) console.error("Slot Generation Error:", rpcError);
     }
   },
 
@@ -2913,6 +3198,11 @@ export const storageService = {
 
     if (error) throw new Error(error.message);
     return data; // { success: true, new_party_size: N }
+  },
+  // --- DANGER ZONE ---
+  resetSystem: async () => {
+    const { error } = await supabase.rpc('admin_reset_system');
+    if (error) throw new Error(error.message);
   },
 
   // Legacy Stub

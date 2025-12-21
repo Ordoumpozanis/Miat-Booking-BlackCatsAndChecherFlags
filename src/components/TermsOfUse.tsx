@@ -105,7 +105,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ isOpen, onClose }) => {
           <div>
             <h4 className="text-lg font-bold text-white mb-2">9) Contact</h4>
             <p>Data Controller: <strong className="text-white">MIAT</strong></p>
-            <p>Email: <a href="mailto:chiara.marchesi@miat.tech" className="text-yellow-400 hover:underline">chiara.marchesi@miat.tech</a></p>
+            <p>Email: <a href="mailto:chiara.marchesi@miat.tech" className="text-yellow-400 hover:underline">miat@miat.tech</a></p>
             <p>Address: Via Alessandro Manzoni, 12 20121 Milan - Italy</p>
           </div>
 

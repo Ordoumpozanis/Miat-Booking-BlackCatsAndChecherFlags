@@ -416,16 +416,18 @@ export const VisitorBooking: React.FC = () => {
 
         <div className="w-full max-w-xs space-y-2 mb-8">
           <div className="flex items-center justify-between border border-white/50 bg-neutral-900/50 px-5 py-3 backdrop-blur-sm shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">The Pit Lane</span>
+             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">Immersive Experience</span>
              <div className="flex items-center gap-1.5 font-maxwell text-xl leading-none text-white">
+               <span className="mt-0.5 text-yellow-400">MAX</span>
                <User className="w-5 h-5 text-neutral-400" strokeWidth={2.5} />
                <span className="text-[10px] text-neutral-500 font-bold font-sans">X</span>
                <span className="mt-0.5">4</span>
              </div>
           </div>
           <div className="flex items-center justify-between border border-white/50 bg-neutral-900/50 px-5 py-3 backdrop-blur-sm shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">The Prophecy</span>
+             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">VR Experience</span>
              <div className="flex items-center gap-1.5 font-maxwell text-xl leading-none text-white">
+              <span className="mt-0.5 text-yellow-400">MAX</span>
                <User className="w-5 h-5 text-neutral-400" strokeWidth={2.5} />
                <span className="text-[10px] text-neutral-500 font-bold font-sans">X</span>
                <span className="mt-0.5">12</span>
@@ -516,12 +518,12 @@ export const VisitorBooking: React.FC = () => {
             </div>
 
             <h3 className="text-4xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-white">
-              The Pit Lane
+              Black Cats & Chequered Flags Immersive Experience
             </h3>
             <p className={`text-sm font-mono leading-relaxed mb-8 flex-grow ${isExp1Disabled ? 'text-neutral-500' : 'text-neutral-400'}`}>
-              // TEAM SYNC REQUIRED
+              //COLLABORATIVE EXPERIENCE
               <br />
-              Suit up as a 1950s mechanic. Change tires, refuel, and work as a unit. High intensity collaboration.
+              The story of Alberto Ascari with a Mixed Reality Pit Stop
             </p>
 
             <div className="mt-auto pt-6 border-t border-white/20">
@@ -555,12 +557,11 @@ export const VisitorBooking: React.FC = () => {
                 Cinematic
               </span>
             </div>
-
-            <h3 className="text-4xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-black">The Prophecy</h3>
+            <h3 className="text-4xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-black">Black Cats & Chequered Flags VR Experience</h3>
             <p className="text-sm font-mono leading-relaxed mb-8 flex-grow text-neutral-800">
-              // OBSERVER MODE
+              // SINGLE USER EXPERIENCE
               <br />
-              Immerse yourself directly in the cinematic VR story. No pit duties. Pure narrative experience.
+              An immersive journey through the story of Alberto Ascari
             </p>
 
             <div className="mt-auto pt-6 border-t border-black/10">
