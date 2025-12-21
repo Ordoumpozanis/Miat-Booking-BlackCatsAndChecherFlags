@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { Scan, UserCheck, XCircle, Search, CheckSquare, Square } from 'lucide-react';
 import { QRScanner } from './QRScanner';
-import { storageService } from '../services/storageService';
-import { Booking } from '../types';
+import { storageService } from '../../services/storageService';
+import { Booking } from '../../types';
 
 export const StaffDashboard: React.FC = () => {
   const [pendingBooking, setPendingBooking] = useState<Booking | null>(null);

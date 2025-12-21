@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { VisitorBooking } from '../components/VisitorBooking';
-import { Layout } from '../components/Layout';
+import { VisitorBooking } from './components/VisitorBooking';
+import { Layout } from './components/Layout';
 import { useRouter } from 'next/navigation';
 
 type Role = 'VISITOR' | 'ADMIN' | 'STAFF';

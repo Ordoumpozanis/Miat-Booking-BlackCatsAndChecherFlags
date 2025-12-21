@@ -2,9 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Trash2, Lock, Unlock, AlertOctagon, RotateCcw, AlertTriangle, X} from 'lucide-react'; // Added icons
-import { Experience, TimeInterval } from '../types';
-import { storageService } from '../services/storageService';
-import { bookingService } from '../services/bookingService';
+import { Experience, TimeInterval } from '../../types';
+import { storageService } from '../../services/storageService';
+import { bookingService } from '../../services/bookingService';
 import { format } from 'date-fns';
 
 export const AdminDashboard: React.FC = () => {

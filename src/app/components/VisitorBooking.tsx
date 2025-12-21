@@ -17,9 +17,9 @@ import {
   Search,
   User
 } from 'lucide-react';
-import { Experience, Booking, Slot } from '../types';
-import { storageService } from '../services/storageService';
-import { bookingService } from '../services/bookingService';
+import { Experience, Booking, Slot } from '../../types';
+import { storageService } from '../../services/storageService';
+import { bookingService } from '../../services/bookingService';
 import { generateQRImage } from './TicketPDF';
 import { format } from 'date-fns';
 import Image from 'next/image';

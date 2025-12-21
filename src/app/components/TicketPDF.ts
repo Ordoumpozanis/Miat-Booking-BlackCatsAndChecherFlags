@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { Booking } from '../types';
+import { Booking } from '../../types';
 
 // FIX: Added '_timezone' as 3rd argument to satisfy the caller. 
 // It is prefixed with _ and unused, so it will NOT appear on the ticket.

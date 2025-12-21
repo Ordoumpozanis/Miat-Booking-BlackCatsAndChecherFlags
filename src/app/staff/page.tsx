@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { StaffDashboard } from '../../components/StaffDashboard';
-import { LoginScreen } from '../../components/LoginScreen';
-import { Layout } from '../../components/Layout';
+import { StaffDashboard } from '../components/StaffDashboard';
+import { LoginScreen } from '../components/LoginScreen';
+import { Layout } from '../components/Layout';
 import { useRouter } from 'next/navigation';
 
 type Role = 'VISITOR' | 'ADMIN' | 'STAFF';
