@@ -56,6 +56,10 @@ export const VisitorBooking: React.FC = () => {
   const [ticketToCancel, setTicketToCancel] = useState<any>(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
+  //Door policy modal (shown on the final visitor screen)
+  const [showDoorPolicyModal, setShowDoorPolicyModal] = useState(false);
+
+
   // 1. Load Experiences
   useEffect(() => {
     let cancelled = false;
@@ -210,6 +214,7 @@ export const VisitorBooking: React.FC = () => {
 
     setConfirmedBookings([booking]);
     setScene(7);
+    setShowDoorPolicyModal(true);
   };
 
   const selectedExpName = experiences.find((e) => e.id === selectedExpId)?.name;
@@ -863,68 +868,120 @@ export const VisitorBooking: React.FC = () => {
   }
 
   // --- SCENE 7: TICKET ---
-  if (scene === 7 && confirmedBookings.length > 0) {
-    const booking = confirmedBookings[0];
-    const expName = experiences.find((e) => e.id === booking.experienceId)?.name || 'The Legend';
-    const tz = experiences.find((e) => e.id === booking.experienceId)?.timezone || 'UTC';
+if (scene === 7 && confirmedBookings.length > 0) {
+  const booking = confirmedBookings[0];
+  const expName = experiences.find((e) => e.id === booking.experienceId)?.name || 'The Legend';
+  const tz = experiences.find((e) => e.id === booking.experienceId)?.timezone || 'UTC';
 
-    return (
-      <div className="min-h-[85vh] flex flex-col items-center justify-center p-6 text-center animate-in zoom-in duration-700">
-        <div className="mb-10">
-          <h2 className="text-7xl md:text-9xl !font-revolution  font-bold uppercase tracking-tighter leading-none mb-2 text-yellow-400">
-            Access
-            <br />
-            Granted
-          </h2>
-          <p className="text-xl font-mono uppercase tracking-widest mt-4 text-white">See you on the grid.</p>
-        </div>
+  return (
+    <div className="min-h-[85vh] flex flex-col items-center justify-center p-6 text-center animate-in zoom-in duration-700">
+      {/* NEW: Policy Modal (Visitor only, last screen) */}
+      {showDoorPolicyModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-neutral-900 border-4 border-red-600 shadow-[0_0_60px_rgba(220,38,38,0.35)] relative">
+            <button
+              onClick={() => setShowDoorPolicyModal(false)}
+              className="absolute top-4 right-4 text-neutral-500 hover:text-white"
+              aria-label="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
 
-        <div className="bg-white p-8 max-w-sm w-full border-4 border-double border-black shadow-[0_0_50px_rgba(255,255,255,0.2)] rotate-1 hover:rotate-0 transition-transform duration-500 relative text-black">
-          <div className="border-2 border-black p-6 text-center">
-            <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 border-b-2 border-black pb-2">Scuderia Pass</div>
+            <div className="p-8 text-left">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-red-600/20 rounded-full border-2 border-red-600">
+                  <AlertTriangle className="w-7 h-7 text-red-500" />
+                </div>
+                <h3 className="text-2xl font-maxwell font-bold uppercase text-white leading-tight">
+                  Arrival Policy
+                </h3>
+              </div>
 
-            <div className="w-40 h-40 bg-black mx-auto mb-6 flex items-center justify-center text-white">
-              <Check className="w-20 h-20" />
-            </div>
+              <div className="h-1 w-14 bg-red-600 mb-6"></div>
 
-            <div className="font-mono text-3xl font-bold tracking-widest mb-1">{booking.referenceCode}</div>
-            <div className="text-[10px] uppercase text-neutral-500 mb-8">Experience Pass Identifier</div>
+              <p className="text-neutral-300 text-sm leading-relaxed mb-4">
+                To keep the entrance queue moving, tickets that are <span className="text-white font-bold">not validated at the door</span>{' '}
+                up to <span className="text-white font-bold">5 minutes before</span> your scheduled start time may be{' '}
+                <span className="text-white font-bold">cancelled</span>, and the available places will be offered to the{' '}
+                <span className="text-white font-bold">waiting list at the door</span>.
+              </p>
 
-            <div className="text-sm font-bold uppercase border-t-2 border-black pt-4 flex justify-between">
-              <span>{format(new Date(booking.date), 'dd.MM.yy')}</span>
-              <span>{booking.time} HRS</span>
+              <p className="text-neutral-400 text-sm leading-relaxed mb-6">
+                Please arrive early and have your QR code ready for scanning.
+              </p>
+
+              <button
+                onClick={() => setShowDoorPolicyModal(false)}
+                className="w-full bg-red-600 text-white font-bold uppercase py-4 tracking-widest hover:bg-red-700 transition-colors shadow-[4px_4px_0px_0px_#fff] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+              >
+                Get my ticket
+              </button>
             </div>
           </div>
         </div>
+      )}
 
-        <div className="flex flex-col gap-4 mt-8 w-full max-w-sm">
-          <button
-            onClick={() => generateQRImage(booking, expName, tz)}
-            className="bg-neutral-900 border-2 border-white text-white font-bold uppercase py-4 hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
-          >
-            <QrCode className="w-5 h-5" /> Save QR Code (Image)
-          </button>
+      <div className="mb-10">
+        <h2 className="text-7xl md:text-9xl !font-revolution  font-bold uppercase tracking-tighter leading-none mb-2 text-yellow-400">
+          Access
+          <br />
+          Granted
+        </h2>
+        <p className="text-xl font-mono uppercase tracking-widest mt-4 text-white">See you on the grid.</p>
+      </div>
+
+      <div className="bg-white p-8 max-w-sm w-full border-4 border-double border-black shadow-[0_0_50px_rgba(255,255,255,0.2)] rotate-1 hover:rotate-0 transition-transform duration-500 relative text-black">
+        <div className="border-2 border-black p-6 text-center">
+          <div className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 border-b-2 border-black pb-2">
+            Scuderia Pass
+          </div>
+
+          <div className="w-40 h-40 bg-black mx-auto mb-6 flex items-center justify-center text-white">
+            <Check className="w-20 h-20" />
+          </div>
+
+          <div className="font-mono text-3xl font-bold tracking-widest mb-1">{booking.referenceCode}</div>
+          <div className="text-[10px] uppercase text-neutral-500 mb-8">Experience Pass Identifier</div>
+
+          <div className="text-sm font-bold uppercase border-t-2 border-black pt-4 flex justify-between">
+            <span>{format(new Date(booking.date), 'dd.MM.yy')}</span>
+            <span>{booking.time} HRS</span>
+          </div>
         </div>
+      </div>
 
+      <div className="flex flex-col gap-4 mt-8 w-full max-w-sm">
         <button
-          onClick={() => {
-            setScene(1);
-            setPax(1);
-            setConfirmedBookings([]);
-            setVisitorName('');
-            setVisitorEmail('');
-            setAttendees([]);
-            setAgreedToTerms(false);
-            setSelectedExpId(null);
-            setSelectedSlot(null);
-          }}
-          className="mt-8 text-xs font-bold uppercase tracking-widest border-b-2 border-white pb-1 text-white hover:text-yellow-400 hover:border-yellow-400 transition-colors"
+          onClick={() => generateQRImage(booking, expName, tz)}
+          className="bg-neutral-900 border-2 border-white text-white font-bold uppercase py-4 hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
         >
-          Book Another Session
+          <QrCode className="w-5 h-5" /> Save QR Code (Image)
         </button>
       </div>
-    );
-  }
+
+      <button
+        onClick={() => {
+          setScene(1);
+          setPax(1);
+          setConfirmedBookings([]);
+          setVisitorName('');
+          setVisitorEmail('');
+          setAttendees([]);
+          setAgreedToTerms(false);
+          setSelectedExpId(null);
+          setSelectedSlot(null);
+
+          // NEW: ensure modal doesn't stick around
+          setShowDoorPolicyModal(false);
+        }}
+        className="mt-8 text-xs font-bold uppercase tracking-widest border-b-2 border-white pb-1 text-white hover:text-yellow-400 hover:border-yellow-400 transition-colors"
+      >
+        Book Another Session
+      </button>
+    </div>
+  );
+}
+
 
   return null;
 };

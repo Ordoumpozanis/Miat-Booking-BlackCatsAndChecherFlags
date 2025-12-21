@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 // Use forward slashes; Node handles them on Windows too.
 const FOLDERS = ["src"];
 // Include .php files.
-const EXTENSIONS = ["js", "jsx", "ts", "tsx", "sql"]; // e.g. ["php","md"] or [] for all files
+const EXTENSIONS = ["js", "jsx", "ts", "tsx"]; // e.g. ["php","md"] or [] for all files
 const OUTPUT_FILE = "all_code.txt";
 // ==================
 

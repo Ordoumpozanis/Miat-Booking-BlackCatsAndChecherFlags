@@ -2,9 +2,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { AdminDashboard } from '../../components/AdminDashboard';
-import { LoginScreen } from '../../components/LoginScreen';
-import { Layout } from '../../components/Layout';
+import { AdminDashboard } from '../components/AdminDashboard';
+import { LoginScreen } from '../components/LoginScreen';
+import { Layout } from '../components/Layout';
 import { useRouter } from 'next/navigation';
 
 type Role = 'VISITOR' | 'ADMIN' | 'STAFF';
@@ -75,199 +75,14 @@ export default function AdminPage() {
   );
 }
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\layout.tsx ===
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import localFont from "next/font/local";
-import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const maxwell = localFont({
-  src: [
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-UltraLight.otf', weight: '100', style: 'normal' },
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-UltraLightItalic.otf', weight: '100', style: 'italic' },
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-Light.otf', weight: '300', style: 'normal' },
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-LightItalic.otf', weight: '300', style: 'italic' },
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-Book.otf', weight: '400', style: 'normal' },
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-BookItalic.otf', weight: '400', style: 'italic' },
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-DemiBold.otf', weight: '600', style: 'normal' },
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-DemiBoldItalic.otf', weight: '600', style: 'italic' },
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-Bold.otf', weight: '700', style: 'normal' },
-    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-BoldItalic.otf', weight: '700', style: 'italic' },
-  ],
-  variable: '--font-maxwell',
-  display: 'swap',
-});
-
-const revolution = localFont({
-  src: '../../public/revolution_ii.ttf',
-  variable: '--font-revolution',
-  display: 'swap',
-});
-
-export const metadata: Metadata = {
-  title: "ExhibitFlow",
-  description: "Black Cats & Chequered Flags - Booking System",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.variable} ${maxwell.variable} ${revolution.variable} antialiased selection:bg-yellow-400 selection:text-black`}
-      >
-        {children}
-      </body>
-    </html>
-  );
-}
-
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\page.tsx ===
-'use client';
-
-import React, { useEffect, useState } from 'react';
-import { VisitorBooking } from '../components/VisitorBooking';
-import { Layout } from '../components/Layout';
-import { useRouter } from 'next/navigation';
-
-type Role = 'VISITOR' | 'ADMIN' | 'STAFF';
-
-type StoredAuth = {
-  isAuthenticated: boolean;
-  role: Role;
-  userId?: string;
-  email?: string;
-};
-
-const STORAGE_KEY = 'ef_auth_v1';
-
-export default function Home() {
-  const router = useRouter();
-  const [auth, setAuth] = useState<StoredAuth>({
-    isAuthenticated: false,
-    role: 'VISITOR',
-  });
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as StoredAuth;
-        setAuth(parsed);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setAuth({ isAuthenticated: false, role: 'VISITOR' });
-    router.refresh();
-  };
-
-  return (
-    <Layout auth={auth} onLogout={handleLogout}>
-      <VisitorBooking />
-    </Layout>
-  );
-}
-
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\staff\page.tsx ===
-'use client';
-
-import React, { useEffect, useState } from 'react';
-import { StaffDashboard } from '../../components/StaffDashboard';
-import { LoginScreen } from '../../components/LoginScreen';
-import { Layout } from '../../components/Layout';
-import { useRouter } from 'next/navigation';
-
-type Role = 'VISITOR' | 'ADMIN' | 'STAFF';
-
-type StoredAuth = {
-  isAuthenticated: boolean;
-  role: Role;
-  userId?: string;
-  email?: string;
-};
-
-const STORAGE_KEY = 'ef_auth_v1';
-
-export default function StaffPage() {
-  const router = useRouter();
-  const [auth, setAuth] = useState<StoredAuth>({
-    isAuthenticated: false,
-    role: 'VISITOR',
-  });
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as StoredAuth;
-        setAuth(parsed);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const handleLogin = (role: 'ADMIN' | 'STAFF', user: { userId: string; email: string }) => {
-    const next: StoredAuth = { isAuthenticated: true, role, userId: user.userId, email: user.email };
-    setAuth(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  };
-
-  const handleCancel = () => {
-    router.push('/');
-  };
-
-  if (!isClient) return null;
-
-  // Allow both STAFF and ADMIN to see Staff view
-  if (auth.isAuthenticated && (auth.role === 'STAFF' || auth.role === 'ADMIN')) {
-    return (
-      <Layout 
-        auth={auth} 
-        onLogout={() => {
-          localStorage.removeItem(STORAGE_KEY);
-          setAuth({ isAuthenticated: false, role: 'VISITOR' });
-          router.push('/');
-        }}
-      >
-        <StaffDashboard />
-      </Layout>
-    );
-  }
-
-  return (
-    <LoginScreen 
-      targetView="staff" 
-      onLogin={handleLogin} 
-      onCancel={handleCancel} 
-    />
-  );
-}
-
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\AdminDashboard.tsx ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\AdminDashboard.tsx ===
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Trash2, Lock, Unlock, AlertOctagon, RotateCcw, AlertTriangle, X} from 'lucide-react'; // Added icons
-import { Experience, TimeInterval } from '../types';
-import { storageService } from '../services/storageService';
-import { bookingService } from '../services/bookingService';
+import { Experience, TimeInterval } from '../../types';
+import { storageService } from '../../services/storageService';
+import { bookingService } from '../../services/bookingService';
 import { format } from 'date-fns';
 
 export const AdminDashboard: React.FC = () => {
@@ -383,32 +198,32 @@ export const AdminDashboard: React.FC = () => {
 
     const ex1: Experience = {
       id: '', 
-      name: 'The Pit Lane',
-      description: 'Interactive Multiplayer',
+      name: ' Immersive Experience',
+      description: 'COLLABORATIVE EXPERIENCE',
       timezone: 'Europe/Rome',
       maxCapacity: 4,
-      durationMinutes: 45,
+      durationMinutes: 30,
       offsetMinutes: 15,
       color: 'bg-blue-600',
       isActive: true,
       startDate: today,
       endDate: nextYear,
-      timeIntervals: [{ startTime: '09:00', endTime: '18:00' }],
+      timeIntervals: [{ startTime: '09:00', endTime: '15:30' }],
     };
 
     const ex2: Experience = {
       id: '', 
-      name: 'The Prophecy',
-      description: 'Cinematic VR',
+      name: 'VR Experience',
+      description: 'SINGLE USER EXPERIENCE',
       timezone: 'Europe/Rome',
       maxCapacity: 12,
-      durationMinutes: 15,
+      durationMinutes: 20,
       offsetMinutes: 10,
       color: 'bg-emerald-600',
       isActive: true,
       startDate: today,
       endDate: nextYear,
-      timeIntervals: [{ startTime: '10:00', endTime: '20:00' }],
+      timeIntervals: [{ startTime: '09:30', endTime: '15:30' }],
     };
 
     try {
@@ -899,7 +714,7 @@ const COMMON_TIMEZONES = [
   );
 };
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\BrandLogo.tsx ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\BrandLogo.tsx ===
 'use client';
 
 import React from 'react';
@@ -928,7 +743,7 @@ export const BrandLogo: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\HamburgerMenu.tsx ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\HamburgerMenu.tsx ===
 'use client';
 
 import React, { useState } from 'react';
@@ -995,7 +810,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ items, onLogout })
   );
 };
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\Layout.tsx ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\Layout.tsx ===
 'use client';
 
 import React from 'react';
@@ -1066,12 +881,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, auth, onLogout }) => {
   );
 };
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\LoginScreen.tsx ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\LoginScreen.tsx ===
 'use client';
 
 import React, { useState } from 'react';
 import { ShieldAlert, KeyRound, Mail } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 interface LoginScreenProps {
   targetView: 'admin' | 'staff';
@@ -1221,7 +1036,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ targetView, onLogin, o
   );
 };
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\QRScanner.tsx ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\QRScanner.tsx ===
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -1318,14 +1133,14 @@ export const QRScanner: React.FC<QRScannerProps> = ({ onScan, isActive }) => {
   );
 };
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\StaffDashboard.tsx ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\StaffDashboard.tsx ===
 'use client';
 
 import React, { useState } from 'react';
 import { Scan, UserCheck, XCircle, Search, CheckSquare, Square } from 'lucide-react';
 import { QRScanner } from './QRScanner';
-import { storageService } from '../services/storageService';
-import { Booking } from '../types';
+import { storageService } from '../../services/storageService';
+import { Booking } from '../../types';
 
 export const StaffDashboard: React.FC = () => {
   const [pendingBooking, setPendingBooking] = useState<Booking | null>(null);
@@ -1570,7 +1385,7 @@ export const StaffDashboard: React.FC = () => {
   );
 };
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\TermsOfUse.tsx ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\TermsOfUse.tsx ===
 'use client';
 
 import React from 'react';
@@ -1678,7 +1493,7 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ isOpen, onClose }) => {
           <div>
             <h4 className="text-lg font-bold text-white mb-2">9) Contact</h4>
             <p>Data Controller: <strong className="text-white">MIAT</strong></p>
-            <p>Email: <a href="mailto:chiara.marchesi@miat.tech" className="text-yellow-400 hover:underline">chiara.marchesi@miat.tech</a></p>
+            <p>Email: <a href="mailto:chiara.marchesi@miat.tech" className="text-yellow-400 hover:underline">miat@miat.tech</a></p>
             <p>Address: Via Alessandro Manzoni, 12 20121 Milan - Italy</p>
           </div>
 
@@ -1698,9 +1513,9 @@ export const TermsOfUse: React.FC<TermsOfUseProps> = ({ isOpen, onClose }) => {
   );
 };
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\TicketPDF.ts ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\TicketPDF.ts ===
 import QRCode from 'qrcode';
-import { Booking } from '../types';
+import { Booking } from '../../types';
 
 // FIX: Added '_timezone' as 3rd argument to satisfy the caller. 
 // It is prefixed with _ and unused, so it will NOT appear on the ticket.
@@ -1942,7 +1757,7 @@ export const generateQRImage = async (booking: Booking, experienceName: string, 
     link.click();
 };
 
-=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\components\VisitorBooking.tsx ===
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\components\VisitorBooking.tsx ===
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -1962,9 +1777,9 @@ import {
   Search,
   User
 } from 'lucide-react';
-import { Experience, Booking, Slot } from '../types';
-import { storageService } from '../services/storageService';
-import { bookingService } from '../services/bookingService';
+import { Experience, Booking, Slot } from '../../types';
+import { storageService } from '../../services/storageService';
+import { bookingService } from '../../services/bookingService';
 import { generateQRImage } from './TicketPDF';
 import { format } from 'date-fns';
 import Image from 'next/image';
@@ -2361,16 +2176,18 @@ export const VisitorBooking: React.FC = () => {
 
         <div className="w-full max-w-xs space-y-2 mb-8">
           <div className="flex items-center justify-between border border-white/50 bg-neutral-900/50 px-5 py-3 backdrop-blur-sm shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">The Pit Lane</span>
+             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">Immersive Experience</span>
              <div className="flex items-center gap-1.5 font-maxwell text-xl leading-none text-white">
+               <span className="mt-0.5 text-yellow-400">MAX</span>
                <User className="w-5 h-5 text-neutral-400" strokeWidth={2.5} />
                <span className="text-[10px] text-neutral-500 font-bold font-sans">X</span>
                <span className="mt-0.5">4</span>
              </div>
           </div>
           <div className="flex items-center justify-between border border-white/50 bg-neutral-900/50 px-5 py-3 backdrop-blur-sm shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">The Prophecy</span>
+             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">VR Experience</span>
              <div className="flex items-center gap-1.5 font-maxwell text-xl leading-none text-white">
+              <span className="mt-0.5 text-yellow-400">MAX</span>
                <User className="w-5 h-5 text-neutral-400" strokeWidth={2.5} />
                <span className="text-[10px] text-neutral-500 font-bold font-sans">X</span>
                <span className="mt-0.5">12</span>
@@ -2461,12 +2278,12 @@ export const VisitorBooking: React.FC = () => {
             </div>
 
             <h3 className="text-4xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-white">
-              The Pit Lane
+              Black Cats & Chequered Flags Immersive Experience
             </h3>
             <p className={`text-sm font-mono leading-relaxed mb-8 flex-grow ${isExp1Disabled ? 'text-neutral-500' : 'text-neutral-400'}`}>
-              // TEAM SYNC REQUIRED
+              //COLLABORATIVE EXPERIENCE
               <br />
-              Suit up as a 1950s mechanic. Change tires, refuel, and work as a unit. High intensity collaboration.
+              The story of Alberto Ascari with a Mixed Reality Pit Stop
             </p>
 
             <div className="mt-auto pt-6 border-t border-white/20">
@@ -2500,12 +2317,11 @@ export const VisitorBooking: React.FC = () => {
                 Cinematic
               </span>
             </div>
-
-            <h3 className="text-4xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-black">The Prophecy</h3>
+            <h3 className="text-4xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-black">Black Cats & Chequered Flags VR Experience</h3>
             <p className="text-sm font-mono leading-relaxed mb-8 flex-grow text-neutral-800">
-              // OBSERVER MODE
+              // SINGLE USER EXPERIENCE
               <br />
-              Immerse yourself directly in the cinematic VR story. No pit duties. Pure narrative experience.
+              An immersive journey through the story of Alberto Ascari
             </p>
 
             <div className="mt-auto pt-6 border-t border-black/10">
@@ -2872,6 +2688,192 @@ export const VisitorBooking: React.FC = () => {
 
   return null;
 };
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\layout.tsx ===
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import localFont from "next/font/local";
+import { Analytics } from "@vercel/analytics/next"
+import "./globals.css";
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const maxwell = localFont({
+  src: [
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-UltraLight.otf', weight: '100', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-UltraLightItalic.otf', weight: '100', style: 'italic' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-Light.otf', weight: '300', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-LightItalic.otf', weight: '300', style: 'italic' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-Book.otf', weight: '400', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-BookItalic.otf', weight: '400', style: 'italic' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-DemiBold.otf', weight: '600', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-DemiBoldItalic.otf', weight: '600', style: 'italic' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-Bold.otf', weight: '700', style: 'normal' },
+    { path: '../../public/Maxwell/Kimmy-Design---MaxwellSans-BoldItalic.otf', weight: '700', style: 'italic' },
+  ],
+  variable: '--font-maxwell',
+  display: 'swap',
+});
+
+const revolution = localFont({
+  src: '../../public/revolution_ii.ttf',
+  variable: '--font-revolution',
+  display: 'swap',
+});
+
+export const metadata: Metadata = {
+  title: "ExhibitFlow",
+  description: "Black Cats & Chequered Flags - Booking System",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} ${maxwell.variable} ${revolution.variable} antialiased selection:bg-yellow-400 selection:text-black`}
+      >
+        {children}
+      </body>
+    </html>
+  );
+}
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\page.tsx ===
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { VisitorBooking } from './components/VisitorBooking';
+import { Layout } from './components/Layout';
+import { useRouter } from 'next/navigation';
+
+type Role = 'VISITOR' | 'ADMIN' | 'STAFF';
+
+type StoredAuth = {
+  isAuthenticated: boolean;
+  role: Role;
+  userId?: string;
+  email?: string;
+};
+
+const STORAGE_KEY = 'ef_auth_v1';
+
+export default function Home() {
+  const router = useRouter();
+  const [auth, setAuth] = useState<StoredAuth>({
+    isAuthenticated: false,
+    role: 'VISITOR',
+  });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as StoredAuth;
+        setAuth(parsed);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setAuth({ isAuthenticated: false, role: 'VISITOR' });
+    router.refresh();
+  };
+
+  return (
+    <Layout auth={auth} onLogout={handleLogout}>
+      <VisitorBooking />
+    </Layout>
+  );
+}
+
+=== D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\app\staff\page.tsx ===
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { StaffDashboard } from '../components/StaffDashboard';
+import { LoginScreen } from '../components/LoginScreen';
+import { Layout } from '../components/Layout';
+import { useRouter } from 'next/navigation';
+
+type Role = 'VISITOR' | 'ADMIN' | 'STAFF';
+
+type StoredAuth = {
+  isAuthenticated: boolean;
+  role: Role;
+  userId?: string;
+  email?: string;
+};
+
+const STORAGE_KEY = 'ef_auth_v1';
+
+export default function StaffPage() {
+  const router = useRouter();
+  const [auth, setAuth] = useState<StoredAuth>({
+    isAuthenticated: false,
+    role: 'VISITOR',
+  });
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as StoredAuth;
+        setAuth(parsed);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleLogin = (role: 'ADMIN' | 'STAFF', user: { userId: string; email: string }) => {
+    const next: StoredAuth = { isAuthenticated: true, role, userId: user.userId, email: user.email };
+    setAuth(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const handleCancel = () => {
+    router.push('/');
+  };
+
+  if (!isClient) return null;
+
+  // Allow both STAFF and ADMIN to see Staff view
+  if (auth.isAuthenticated && (auth.role === 'STAFF' || auth.role === 'ADMIN')) {
+    return (
+      <Layout 
+        auth={auth} 
+        onLogout={() => {
+          localStorage.removeItem(STORAGE_KEY);
+          setAuth({ isAuthenticated: false, role: 'VISITOR' });
+          router.push('/');
+        }}
+      >
+        <StaffDashboard />
+      </Layout>
+    );
+  }
+
+  return (
+    <LoginScreen 
+      targetView="staff" 
+      onLogin={handleLogin} 
+      onCancel={handleCancel} 
+    />
+  );
+}
 
 === D:\Miat\Apps\Booking System\Miat-Booking-BlackCatsAndChecherFlags\src\lib\supabase.ts ===
 import { createClient } from '@supabase/supabase-js';
