@@ -421,7 +421,7 @@ export const VisitorBooking: React.FC = () => {
 
         <div className="w-full max-w-xs space-y-2 mb-8">
           <div className="flex items-center justify-between border border-white/50 bg-neutral-900/50 px-5 py-3 backdrop-blur-sm shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]">
-             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">Immersive Experience</span>
+             <span className="font-revolution text-white font-bold tracking-wider text-sm mt-0.5">VR experience+ Pit Stop</span>
              <div className="flex items-center gap-1.5 font-maxwell text-xl leading-none text-white">
                <span className="mt-0.5 text-yellow-400">MAX</span>
                <User className="w-5 h-5 text-neutral-400" strokeWidth={2.5} />
@@ -522,8 +522,8 @@ export const VisitorBooking: React.FC = () => {
               </span>
             </div>
 
-            <h3 className="text-4xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-white">
-              Black Cats & Chequered Flags Immersive Experience
+            <h3 className="text-3xl !font-revolution font-bold uppercase tracking-tighter mb-4 leading-none text-white">
+              Black cats & Chequered Flags Vr experience + pit stop
             </h3>
             <p className={`text-sm font-mono leading-relaxed mb-8 flex-grow ${isExp1Disabled ? 'text-neutral-500' : 'text-neutral-400'}`}>
               //COLLABORATIVE EXPERIENCE
